@@ -29,7 +29,7 @@ const upload = multer({ storage: storage })
 app.use(express.json());
 
 app.use(cors({
-    origin: true,
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
     methods: ['POST', 'GET', 'DELETE', 'PUT'],
     credentials: true
 }));
