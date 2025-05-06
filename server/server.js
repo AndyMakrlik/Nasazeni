@@ -2,7 +2,7 @@ import express from 'express';
 import mysql2 from 'mysql2';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcryptjs from 'bcryptjs';
 import cookie from 'cookie-parser';
 import nodeMailer from 'nodemailer';
 import session from 'express-session';
@@ -512,7 +512,7 @@ app.post('/registrace', async (req, res) => {
             return res.json({ Error: "Tento e-mail je již zaregistrován." });
         }
 
-        const hashedPassword = await bcrypt.hash(req.body.heslo.toString(), 10);
+        const hashedPassword = await bcryptjs.hash(req.body.heslo.toString(), 10);
 
         const sql = "INSERT INTO uzivatel (`jmeno`, `prijmeni`, `email`, `telefon`, `heslo`, `kraj`, `mesto`) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
@@ -656,7 +656,7 @@ app.post('/prihlaseni', async (req, res) => {
 
         const user = userData[0];
 
-        const passwordMatch = await bcrypt.compare(req.body.heslo.toString(), user.heslo);
+        const passwordMatch = await bcryptjs.compare(req.body.heslo.toString(), user.heslo);
         if (!passwordMatch) {
             return res.json({ Error: "Hesla se neshodují" });
         }
@@ -725,7 +725,7 @@ app.post('/restorePassword/:token', async (req, res) => {
 
         const userId = decoded.id;
 
-        const hash = await bcrypt.hash(heslo, 10);
+        const hash = await bcryptjs.hash(heslo, 10);
 
         const sqlChange = 'UPDATE uzivatel SET heslo = ? WHERE id = ?';
         const [result] = await db.promise().query(sqlChange, [hash, userId]);
