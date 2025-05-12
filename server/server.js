@@ -56,11 +56,11 @@ app.use("/uploads", express.static(path.join('./uploads')));
 
 app.use(cookie());
 
-const db = await mysql2.createConnection({
-    host: 'localhost', // Nastavte hostitele
-    user: 'root',      // Nastavte uživatele
-    password: '', // Nastavte heslo
-    database: 'autobazar' // Nastavte název databáze
+const db = mysql2.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'autobazar'
 });
 
 //Kontrola připojení k databázi
