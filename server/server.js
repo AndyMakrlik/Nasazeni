@@ -57,10 +57,10 @@ app.use("/uploads", express.static(path.join('./uploads')));
 app.use(cookie());
 
 const db = mysql2.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'autobazar'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
 //Kontrola připojení k databázi
@@ -1462,7 +1462,7 @@ app.post('/zobrazeni', async (req, res) => {
     const { carId } = req.body;
     try {
         await db.promise().query('UPDATE inzerat SET pocet_zobrazeni = pocet_zobrazeni + 1 WHERE id = ?', [carId]);
-        res.json({ Status: "Success"});
+        res.json({ Status: "Success" });
     } catch (err) {
         console.error(err);
         res.json({ Status: "Error", Error: "Chyba při ukládání zobrazení." });
@@ -1472,32 +1472,32 @@ app.post('/zobrazeni', async (req, res) => {
 app.post('/visit', verifyUser, async (req, res) => {
     const userId = req.id;
     const { carId } = req.body;
-  
+
     try {
-      const [rows] = await db.promise().query(
-        'SELECT * FROM historie WHERE fk_uzivatel = ? AND fk_inzerat = ?',
-        [userId, carId]
-      );
-  
-      if (rows.length > 0) {
-        await db.promise().query(
-          'UPDATE historie SET datum_navstevy = NOW() WHERE fk_uzivatel = ? AND fk_inzerat = ?',
-          [userId, carId]
+        const [rows] = await db.promise().query(
+            'SELECT * FROM historie WHERE fk_uzivatel = ? AND fk_inzerat = ?',
+            [userId, carId]
         );
-      } else {
-        await db.promise().query(
-          'INSERT INTO historie (fk_uzivatel, fk_inzerat, datum_navstevy) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_navstevy = NOW()',
-          [userId, carId]
-        );
-      }
-  
-      res.json({ Status: "Success" });
+
+        if (rows.length > 0) {
+            await db.promise().query(
+                'UPDATE historie SET datum_navstevy = NOW() WHERE fk_uzivatel = ? AND fk_inzerat = ?',
+                [userId, carId]
+            );
+        } else {
+            await db.promise().query(
+                'INSERT INTO historie (fk_uzivatel, fk_inzerat, datum_navstevy) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_navstevy = NOW()',
+                [userId, carId]
+            );
+        }
+
+        res.json({ Status: "Success" });
     } catch (err) {
-      console.error(err);
-      res.json({ Status: "Error", Error: "Chyba při ukládání návštěvy." });
+        console.error(err);
+        res.json({ Status: "Error", Error: "Chyba při ukládání návštěvy." });
     }
-  });
-  
+});
+
 
 app.get('/history', verifyUser, async (req, res) => {
     const userId = req.id;
@@ -1586,5 +1586,5 @@ app.use(express.static(path.join(__dirname, "./build")));
 
 // 2. Jakákoli jiná GET žádost → index.html (React přebírá routování)
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
+    res.sendFile(path.join(__dirname, "build", "index.html"));
 });
