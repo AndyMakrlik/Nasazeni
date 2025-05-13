@@ -45,6 +45,31 @@ app.use((req, res, next) => {
 
 app.use(cookie());
 
+// Create an API router
+const apiRouter = express.Router();
+
+// Verify user middleware
+const verifyUser = (req, res, next) => {
+    const user = req.session.user;
+
+    if (!user || !user.role) {
+        return res.json({});
+    }
+
+    if (!user || !user.id) {
+        return res.json({});
+    } else {
+        req.id = user.id;
+        req.role = user.role;
+        req.jmeno = user.jmeno;
+        req.prijmeni = user.prijmeni;
+        next();
+    }
+}
+
+// Mount the API router under /api prefix
+app.use('/api', apiRouter);
+
 // Serve static files from the build directory
 app.use(express.static(path.join(__dirname, 'build')));
 
@@ -65,6 +90,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// Database connection
 const db = mysql2.createPool({
     host: process.env.MYSQL_ADDON_HOST,
     user: process.env.MYSQL_ADDON_USER,
@@ -81,26 +107,7 @@ db.query('SELECT 1')
   .then(() => console.log('✅ Připojeno k databázi'))
   .catch(err => console.error('❌ Chyba při připojení k databázi:', err));
 
-//Kontrola přihlášení
-const verifyUser = (req, res, next) => {
-    const user = req.session.user;
-
-    if (!user || !user.role) {
-        return res.json({});
-    }
-
-    if (!user || !user.id) {
-        return res.json({});
-    } else {
-        req.id = user.id;
-        req.role = user.role;
-        req.jmeno = user.jmeno;
-        req.prijmeni = user.prijmeni;
-        next();
-    }
-}
-
-app.get('/user/:id', async (req, res) => {
+apiRouter.get('/user/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const [userData] = await db.query(
@@ -115,7 +122,7 @@ app.get('/user/:id', async (req, res) => {
     }
 })
 
-app.post('/createChat', verifyUser, async (req, res) => {
+apiRouter.post('/createChat', verifyUser, async (req, res) => {
     const { userId } = req.body;  // ID druhého uživatele (vlastník inzerátu)
     const curId = req.id; // Přihlášený uživatel
 
@@ -153,7 +160,7 @@ app.post('/createChat', verifyUser, async (req, res) => {
 });
 
 
-app.get('/recenze/:id', async (req, res) => {
+apiRouter.get('/recenze/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const [recenze] = await db.query(
@@ -168,7 +175,7 @@ app.get('/recenze/:id', async (req, res) => {
     }
 })
 
-app.post('/zpravy/:id', verifyUser, async (req, res) => {
+apiRouter.post('/zpravy/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const { obsah } = req.body;
     const userId = req.id;
@@ -188,7 +195,7 @@ app.post('/zpravy/:id', verifyUser, async (req, res) => {
 });
 
 
-app.get('/zpravy/:id', verifyUser, async (req, res) => {
+apiRouter.get('/zpravy/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
     try {
@@ -210,7 +217,7 @@ app.get('/zpravy/:id', verifyUser, async (req, res) => {
 });
 
 
-app.get('/recenzeUzivatele/:id', verifyUser, async (req, res) => {
+apiRouter.get('/recenzeUzivatele/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
     try {
@@ -230,7 +237,7 @@ app.get('/recenzeUzivatele/:id', verifyUser, async (req, res) => {
     }
 })
 
-app.post('/recenze/:id', verifyUser, async (req, res) => {
+apiRouter.post('/recenze/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
     const { stars, comment } = req.body;
@@ -249,7 +256,7 @@ app.post('/recenze/:id', verifyUser, async (req, res) => {
 });
 
 
-app.put('/recenze/:id', verifyUser, async (req, res) => {
+apiRouter.put('/recenze/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
     const { stars, comment } = req.body;
@@ -272,7 +279,7 @@ app.put('/recenze/:id', verifyUser, async (req, res) => {
 });
 
 
-app.put('/recenze/:id', async (req, res) => {
+apiRouter.put('/recenze/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const [recenze] = await db.query(
@@ -287,7 +294,7 @@ app.put('/recenze/:id', async (req, res) => {
     }
 })
 
-app.get('/pocetNote', verifyUser, async (req, res) => {
+apiRouter.get('/pocetNote', verifyUser, async (req, res) => {
     const userId = req.id;
     try {
         const [rows] = await db.query(
@@ -305,11 +312,11 @@ app.get('/pocetNote', verifyUser, async (req, res) => {
 })
 
 //Požadavek na kontrolu přihlášení
-app.get('/check', verifyUser, (req, res) => {
+apiRouter.get('/check', verifyUser, (req, res) => {
     return res.json({ Status: 'Success', role: req.role, id: req.id, jmeno: req.jmeno, prijmeni: req.prijmeni })
 });
 
-app.delete('/user/:id', async (req, res) => {
+apiRouter.delete('/user/:id', async (req, res) => {
     const userId = req.params.id;
     try {
         await db.query('DELETE FROM oblibene WHERE fk_uzivatel = ?', [userId]);
@@ -355,7 +362,7 @@ app.delete('/user/:id', async (req, res) => {
     }
 });
 
-app.get('/konverzace/:id/uzivatele', verifyUser, async (req, res) => {
+apiRouter.get('/konverzace/:id/uzivatele', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
 
@@ -377,7 +384,7 @@ app.get('/konverzace/:id/uzivatele', verifyUser, async (req, res) => {
 });
 
 
-app.post('/user/:id/role', async (req, res) => {
+apiRouter.post('/user/:id/role', async (req, res) => {
     const userId = req.params.id;
     const { role } = req.body;
     const sql = 'UPDATE uzivatel SET role = ? WHERE id = ?';
@@ -389,7 +396,7 @@ app.post('/user/:id/role', async (req, res) => {
     }
 });
 
-app.get('/userList', verifyUser, async (req, res) => {
+apiRouter.get('/userList', verifyUser, async (req, res) => {
     const currentUserId = req.id;
     const sql = 'SELECT uzivatel.id, uzivatel.jmeno, uzivatel.prijmeni, uzivatel.email, uzivatel.telefon, uzivatel.role, uzivatel.datum_registrace FROM uzivatel WHERE uzivatel.id != ?;';
     try {
@@ -405,7 +412,7 @@ app.get('/userList', verifyUser, async (req, res) => {
     }
 })
 
-app.get('/adList', verifyUser, async (req, res) => {
+apiRouter.get('/adList', verifyUser, async (req, res) => {
 
     const sql = `
       SELECT 
@@ -439,7 +446,7 @@ app.get('/adList', verifyUser, async (req, res) => {
     }
 });
 
-app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
+apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
 
     const userId = req.id;
     try {
@@ -507,7 +514,7 @@ app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
 })
 
 //Požadavek na registraci
-app.post('/registrace', async (req, res) => {
+apiRouter.post('/registrace', async (req, res) => {
     try {
         const checkPhoneNumberSql = "SELECT * FROM uzivatel WHERE telefon = ?";
         const [phoneResult] = await db.query(checkPhoneNumberSql, [req.body.celyTelefon]);
@@ -545,7 +552,7 @@ app.post('/registrace', async (req, res) => {
 });
 
 // Přidání inzerátu do oblíbených
-app.post('/favor', verifyUser, async (req, res) => {
+apiRouter.post('/favor', verifyUser, async (req, res) => {
     const id = req.id;
     const { carId, cena } = req.body;
     const sql = 'INSERT INTO oblibene (`fk_uzivatel`, `fk_inzerat`, `cenaPriUlozeni`) VALUES (?, ?, ?)';
@@ -560,7 +567,7 @@ app.post('/favor', verifyUser, async (req, res) => {
 })
 
 //odebrání inzerátu z oblíbených
-app.delete('/favor/:carId', verifyUser, async (req, res) => {
+apiRouter.delete('/favor/:carId', verifyUser, async (req, res) => {
     const id = req.id;
     const { carId } = req.params;
     const sql = 'DELETE FROM oblibene WHERE fk_uzivatel = ? AND fk_inzerat = ?';
@@ -574,7 +581,7 @@ app.delete('/favor/:carId', verifyUser, async (req, res) => {
 });
 
 //Získání oblíbených inzerátů (Kvůli zobrazení srdce když uživatel hledá vozidla)
-app.get('/favor', verifyUser, async (req, res) => {
+apiRouter.get('/favor', verifyUser, async (req, res) => {
     const id = req.id;
     const sql = 'SELECT fk_inzerat FROM oblibene WHERE fk_uzivatel = ?';
     try {
@@ -587,7 +594,7 @@ app.get('/favor', verifyUser, async (req, res) => {
 });
 
 //Získaní oblíbených inzerátů (Kvůli zobrazení srdce na samostatném inzerátu)
-app.get('/singleFavourite/:carId', verifyUser, async (req, res) => {
+apiRouter.get('/singleFavourite/:carId', verifyUser, async (req, res) => {
     const id = req.id;
     const { carId } = req.params;
     const sql = 'SELECT 1 FROM oblibene WHERE fk_uzivatel = ? AND fk_inzerat = ? LIMIT 1';
@@ -607,7 +614,7 @@ app.get('/singleFavourite/:carId', verifyUser, async (req, res) => {
 });
 
 //Získání oblíbených inzerátů (Pro zobrazení na stránce oblíbených)
-app.get('/favourites', verifyUser, async (req, res) => {
+apiRouter.get('/favourites', verifyUser, async (req, res) => {
     const id = req.id;
     const sql = `
         SELECT 
@@ -653,7 +660,7 @@ app.get('/favourites', verifyUser, async (req, res) => {
 })
 
 //Požadavek na přihlášení
-app.post('/prihlaseni', async (req, res) => {
+apiRouter.post('/prihlaseni', async (req, res) => {
     try {
         const sql = 'SELECT * FROM uzivatel WHERE email = ?';
 
@@ -679,7 +686,7 @@ app.post('/prihlaseni', async (req, res) => {
 });
 
 //Požadavek na odeslání emailu pro změnu hesla
-app.post('/resetPassword', async (req, res) => {
+apiRouter.post('/resetPassword', async (req, res) => {
     try {
         const sql = 'SELECT * FROM uzivatel WHERE email = ?';
         const [userData] = await db.query(sql, [req.body.email]);
@@ -721,7 +728,7 @@ app.post('/resetPassword', async (req, res) => {
 })
 
 //Požadavek na obnovení hesla
-app.post('/restorePassword/:token', async (req, res) => {
+apiRouter.post('/restorePassword/:token', async (req, res) => {
     const { token } = req.params;
     const { heslo } = req.body;
 
@@ -751,7 +758,7 @@ app.post('/restorePassword/:token', async (req, res) => {
 });
 
 //Požadavek na data o uživateli
-app.get('/profile', verifyUser, async (req, res) => {
+apiRouter.get('/profile', verifyUser, async (req, res) => {
     const id = req.id;
     const sql = 'SELECT id, jmeno, prijmeni, email, telefon, kraj, mesto, role FROM uzivatel WHERE id = ?';
 
@@ -779,7 +786,7 @@ app.get('/profile', verifyUser, async (req, res) => {
 });
 
 //Požadavek na data o inzerátu
-app.get('/car/:id', async (req, res) => {
+apiRouter.get('/car/:id', async (req, res) => {
     const id = req.params.id;
 
     const sql = `
@@ -849,7 +856,7 @@ app.get('/car/:id', async (req, res) => {
 });
 
 //Požadavek na změnu údajů
-app.post('/profile', verifyUser, async (req, res) => {
+apiRouter.post('/profile', verifyUser, async (req, res) => {
     const id = req.id;
     try {
         if (req.body.isSamePhone === false) {
@@ -883,7 +890,7 @@ app.post('/profile', verifyUser, async (req, res) => {
     }
 });
 
-app.get('/chats', verifyUser, async (req, res) => {
+apiRouter.get('/chats', verifyUser, async (req, res) => {
     const id = req.id;
     const sql = `
         SELECT 
@@ -905,7 +912,7 @@ app.get('/chats', verifyUser, async (req, res) => {
     }
 })
 
-app.get('/notifications', verifyUser, async (req, res) => {
+apiRouter.get('/notifications', verifyUser, async (req, res) => {
     const id = req.id;
     const sql = `
     SELECT * FROM notifikace WHERE fk_uzivatel = ?
@@ -922,7 +929,7 @@ app.get('/notifications', verifyUser, async (req, res) => {
 })
 
 //Požadavek na získaní všech inzerátů
-app.get('/cars', async (req, res) => {
+apiRouter.get('/cars', async (req, res) => {
     const { znacka, model, karoserie, rokOd, vykonOd, cenaDo, palivo } = req.query;
 
     let sql = `
@@ -997,7 +1004,7 @@ app.get('/cars', async (req, res) => {
     }
 });
 
-app.get('/simCars/:id', async (req, res) => {
+apiRouter.get('/simCars/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -1049,7 +1056,7 @@ app.get('/simCars/:id', async (req, res) => {
 });
 
 
-app.get('/carsfilter', async (req, res) => {
+apiRouter.get('/carsfilter', async (req, res) => {
     const { znacka, model, karoserie, pocetDveri, minSedadel, maxSedadel, prevodovka, palivo, barva, pohon, stav, rokOd, rokDo, vykonOd, vykonDo, objemOd, objemDo, najezdOd, najezdDo, cenaOd, cenaDo } = req.query;
 
     let sql = `
@@ -1180,7 +1187,7 @@ app.get('/carsfilter', async (req, res) => {
     }
 });
 
-app.get('/models/:brandId', async (req, res) => {
+apiRouter.get('/models/:brandId', async (req, res) => {
     try {
         const { brandId } = req.params;
 
@@ -1197,7 +1204,7 @@ app.get('/models/:brandId', async (req, res) => {
 });
 
 
-app.get('/brands', async (req, res) => {
+apiRouter.get('/brands', async (req, res) => {
     try {
         const [rows] = await db.query(`
         SELECT DISTINCT znacka.id, znacka.nazev 
@@ -1211,7 +1218,7 @@ app.get('/brands', async (req, res) => {
     }
 });
 
-app.get('/karoserie', async (req, res) => {
+apiRouter.get('/karoserie', async (req, res) => {
     try {
         const [rows] = await db.query(`
         SELECT DISTINCT auto.karoserie
@@ -1223,7 +1230,7 @@ app.get('/karoserie', async (req, res) => {
     }
 });
 
-app.get('/pocet_dveri', async (req, res) => {
+apiRouter.get('/pocet_dveri', async (req, res) => {
     try {
         const [rows] = await db.query(`
         SELECT DISTINCT auto.pocet_dveri
@@ -1236,7 +1243,7 @@ app.get('/pocet_dveri', async (req, res) => {
     }
 });
 
-app.get('/barvy', async (req, res) => {
+apiRouter.get('/barvy', async (req, res) => {
     try {
         const [rows] = await db.query(`
         SELECT DISTINCT auto.barva
@@ -1248,7 +1255,7 @@ app.get('/barvy', async (req, res) => {
     }
 });
 
-app.post("/notifyNewMsg", async (req, res) => {
+apiRouter.post("/notifyNewMsg", async (req, res) => {
     const { id, jmeno, fk_uzivatel } = req.body;
 
     try {
@@ -1270,7 +1277,7 @@ app.post("/notifyNewMsg", async (req, res) => {
     }
 })
 
-app.post("/notifyReportAdd", async (req, res) => {
+apiRouter.post("/notifyReportAdd", async (req, res) => {
     const { id, jmeno, prijmeni, fk_hodnoceni } = req.body;
 
     try {
@@ -1292,7 +1299,7 @@ app.post("/notifyReportAdd", async (req, res) => {
     }
 })
 
-app.post("/notifyPriceChange", async (req, res) => {
+apiRouter.post("/notifyPriceChange", async (req, res) => {
     const { name, newPrice, oldPrice, id } = req.body;
 
     try {
@@ -1323,7 +1330,7 @@ app.post("/notifyPriceChange", async (req, res) => {
     }
 });
 
-app.post("/notifyStatusChange", async (req, res) => {
+apiRouter.post("/notifyStatusChange", async (req, res) => {
     const { name, newStav, oldStav, id } = req.body;
 
     try {
@@ -1352,7 +1359,7 @@ app.post("/notifyStatusChange", async (req, res) => {
 });
 
 
-app.delete('/ad/:adId/:carId', async (req, res) => {
+apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
     const { adId, carId } = req.params;
 
     try {
@@ -1386,7 +1393,7 @@ app.delete('/ad/:adId/:carId', async (req, res) => {
     }
 });
 
-app.delete('/history/:adId', verifyUser, async (req, res) => {
+apiRouter.delete('/history/:adId', verifyUser, async (req, res) => {
     const userId = req.id;
     const { adId } = req.params;
 
@@ -1400,7 +1407,7 @@ app.delete('/history/:adId', verifyUser, async (req, res) => {
     }
 });
 
-app.delete('/note/:id', async (req, res) => {
+apiRouter.delete('/note/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -1413,7 +1420,7 @@ app.delete('/note/:id', async (req, res) => {
     }
 });
 
-app.post('/note/:id', async (req, res) => {
+apiRouter.post('/note/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -1426,7 +1433,7 @@ app.post('/note/:id', async (req, res) => {
     }
 });
 
-app.post('/editAdd', async (req, res) => {
+apiRouter.post('/editAdd', async (req, res) => {
     const data = req.body.editData;
 
     try {
@@ -1445,7 +1452,7 @@ app.post('/editAdd', async (req, res) => {
     }
 })
 
-app.get('/myadd', verifyUser, async (req, res) => {
+apiRouter.get('/myadd', verifyUser, async (req, res) => {
     const userId = req.id;
 
     const sql = `
@@ -1508,7 +1515,7 @@ app.get('/myadd', verifyUser, async (req, res) => {
     }
 })
 
-app.post('/zobrazeni', async (req, res) => {
+apiRouter.post('/zobrazeni', async (req, res) => {
     const { carId } = req.body;
     try {
         await db.query('UPDATE inzerat SET pocet_zobrazeni = pocet_zobrazeni + 1 WHERE id = ?', [carId]);
@@ -1519,7 +1526,7 @@ app.post('/zobrazeni', async (req, res) => {
     }
 })
 
-app.post('/visit', verifyUser, async (req, res) => {
+apiRouter.post('/visit', verifyUser, async (req, res) => {
     const userId = req.id;
     const { carId } = req.body;
 
@@ -1549,7 +1556,7 @@ app.post('/visit', verifyUser, async (req, res) => {
 });
 
 
-app.get('/history', verifyUser, async (req, res) => {
+apiRouter.get('/history', verifyUser, async (req, res) => {
     const userId = req.id;
     const sql = `
     SELECT 
@@ -1615,7 +1622,7 @@ app.get('/history', verifyUser, async (req, res) => {
 })
 
 //Odhlášení
-app.get('/odhlasit', (req, res) => {
+apiRouter.get('/odhlasit', (req, res) => {
     if (req.session) {
         req.session.destroy((err) => {
             if (err) {
@@ -1631,7 +1638,7 @@ app.listen(port, () => {
     console.log(`Server běží na portu ${port}...`);
 });
 
-// This should be the LAST route
+// This should be the LAST route - after all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
