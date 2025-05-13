@@ -57,10 +57,10 @@ app.use("/uploads", express.static(path.join('./uploads')));
 app.use(cookie());
 
 const db = mysql2.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    host: process.env.MYSQL_ADDON_HOST,
+    user: process.env.MYSQL_ADDON_USER,
+    password: process.env.MYSQL_ADDON_PASSWORD,
+    database: process.env.MYSQL_ADDON_DB
 });
 
 //Kontrola připojení k databázi
@@ -319,7 +319,7 @@ app.delete('/user/:id', async (req, res) => {
                 // Získání a smazání obrázků
                 if (images.length > 0) {
                     images[0].forEach(image => {
-                        const imagePath = path.join(__dirname, image.obrazek.replace('http://localhost:3001/', ''));
+                        const imagePath = path.join(__dirname, image.obrazek.replace(`${process.env.CLIENT_URL}/`, ''));
                         if (imagePath) {
                             fs.unlinkSync(imagePath)
                         } else {
@@ -478,7 +478,7 @@ app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         if (req.files && req.files.length > 0) {
             const filePaths = req.files.map((file, index) => {
                 return {
-                    filePath: `http://localhost:3001/uploads/${file.filename}`,
+                    filePath: `${process.env.CLIENT_URL}/uploads/${file.filename}`,
                     hlavni: index === 0
                 };
             });
@@ -700,7 +700,7 @@ app.post('/resetPassword', async (req, res) => {
             from: 'sportovniautainfo@gmail.com',
             to: req.body.email,
             subject: 'Resetování hesla',
-            text: `Odkaz je platný po dobu 10 minut: http://localhost:3000/restorePassword/${token}`
+            text: `Odkaz je platný po dobu 10 minut: ${process.env.CLIENT_URL}/restorePassword/${token}`
         };
 
         await transporter.sendMail(mailOptions);
@@ -1312,7 +1312,7 @@ app.delete('/ad/:adId/:carId', async (req, res) => {
 
         if (images.length > 0) {
             images[0].forEach(image => {
-                const imagePath = path.join(__dirname, image.obrazek.replace('http://localhost:3001/', ''));
+                const imagePath = path.join(__dirname, image.obrazek.replace(`${process.env.CLIENT_URL}/`, ''));
                 if (imagePath) {
                     fs.unlinkSync(imagePath)
                 } else {
