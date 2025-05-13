@@ -1637,9 +1637,9 @@ app.listen(port, () => {
 // Serve frontend routes (fallback)
 
 
-app.use(express.static(path.join(__dirname, 'client', 'build')));
+app.use(express.static(path.join(__dirname, 'build')));
 
 // Pokud žádná jiná route nesedí, vrať index.html (React SPA routing)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
