@@ -12,9 +12,17 @@ import fs from 'fs';
 import 'dotenv/config';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const app = express();
 const port = 3001;
@@ -76,18 +84,8 @@ app.use(express.static(path.join(__dirname, 'build')));
 // Handle uploads directory for images
 app.use("/uploads", express.static(path.join(__dirname, 'uploads')));
 
-// Your existing storage configuration for multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        const fileExtension = file.mimetype.split('/')[1];
-        const uniqueName = `${Date.now()}-${Math.random().toString(36)}.${fileExtension}`;
-        cb(null, uniqueName);
-    }
-});
-
+// Configure multer to use memory storage instead of disk storage
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Database connection
@@ -447,18 +445,13 @@ apiRouter.get('/adList', verifyUser, async (req, res) => {
 });
 
 apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
-
     const userId = req.id;
     try {
         const inzerat = JSON.parse(req.body.inzerat);
         const auto = JSON.parse(req.body.auto);
         const specifikace = JSON.parse(req.body.specifikace);
 
-        console.log('Nahrané soubory:', req.files);
-        console.log('Inzerát:', inzerat);
-        console.log('Auto:', auto);
-        console.log('Specifikace:', specifikace);
-
+        // Handle database operations for znacka, model, and auto as before
         const [znacka] = await db.query('SELECT id FROM znacka WHERE nazev = ?', [auto.znacka]);
         let znackaId;
         if (znacka.length === 0) {
@@ -467,6 +460,7 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         } else {
             znackaId = znacka[0].id;
         }
+
         const [model] = await db.query('SELECT id FROM model WHERE nazev = ? AND fk_znacka = ?', [auto.model, znackaId]);
         let modelId;
         if (model.length === 0) {
@@ -475,6 +469,7 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         } else {
             modelId = model[0].id;
         }
+
         const [autoResult] = await db.query(
             `INSERT INTO auto (fk_model, rok_vyroby, vykon_kw, palivo, karoserie, barva, najete_km, objem, pohon, prevodovka, vin, pocet_sedadel, pocet_dveri)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -489,29 +484,46 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         );
         const inzeratId = inzeratSQL.insertId;
 
-        req.inzeratId = inzeratId;
-
+        // Upload images to Cloudinary
         if (req.files && req.files.length > 0) {
-            const filePaths = req.files.map((file, index) => {
-                return {
-                    filePath: `http://localhost:3001/uploads/${file.filename}`,
-                    hlavni: index === 0
-                };
+            const uploadPromises = req.files.map((file, index) => {
+                return new Promise((resolve, reject) => {
+                    const uploadStream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'car-ads',
+                        },
+                        async (error, result) => {
+                            if (error) reject(error);
+                            else {
+                                try {
+                                    await db.query(
+                                        'INSERT INTO obrazky (fk_inzerat, obrazek, hlavni) VALUES (?, ?, ?)',
+                                        [inzeratId, result.secure_url, index === 0]
+                                    );
+                                    resolve(result);
+                                } catch (err) {
+                                    reject(err);
+                                }
+                            }
+                        }
+                    );
+
+                    // Convert buffer to stream and pipe to Cloudinary
+                    const bufferStream = new require('stream').PassThrough();
+                    bufferStream.end(file.buffer);
+                    bufferStream.pipe(uploadStream);
+                });
             });
 
-            for (const { filePath, hlavni } of filePaths) {
-                await db.query(
-                    'INSERT INTO obrazky (fk_inzerat, obrazek, hlavni) VALUES (?, ?, ?)',
-                    [inzeratId, filePath, hlavni]
-                );
-            }
+            await Promise.all(uploadPromises);
         }
 
         return res.json({ Status: 'Success' });
     } catch (err) {
+        console.error('Error:', err);
         return res.json({ Error: "Nastala chyba při zpracování registrace." + err });
     }
-})
+});
 
 //Požadavek na registraci
 apiRouter.post('/registrace', async (req, res) => {
@@ -1363,27 +1375,26 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
     const { adId, carId } = req.params;
 
     try {
-        await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
+        // Get the image URLs before deleting the records
+        const [images] = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
-        const images = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
-
+        // Delete from Cloudinary if images exist
         if (images.length > 0) {
-            images[0].forEach(image => {
-                const imagePath = path.join(__dirname, image.obrazek.replace('http://localhost:3001/', ''));
-                if (imagePath) {
-                    fs.unlinkSync(imagePath)
-                } else {
-                    console.log("Cesta k obrázku je undefined nebo prázdná");
+            for (const image of images[0]) {
+                // Extract public_id from the Cloudinary URL
+                const publicId = image.obrazek.split('/').slice(-1)[0].split('.')[0];
+                try {
+                    await cloudinary.uploader.destroy(`car-ads/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error('Error deleting from Cloudinary:', cloudinaryError);
                 }
-            });
+            }
         }
 
+        // Delete database records
+        await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
-
-        // Odstranění samotného inzerátu
         await db.query('DELETE FROM inzerat WHERE id = ?', [adId]);
-
-        // Odstranění auta
         await db.query('DELETE FROM auto WHERE id = ?', [carId]);
 
         res.json({ Status: 'Success' });
