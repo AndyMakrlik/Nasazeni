@@ -1641,5 +1641,5 @@ app.use(express.static(path.join(_dirname, 'build')));
 
 // Pokud žádná jiná route nesedí, vrať index.html (React SPA routing)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(_dirname, 'build', 'index.html'));
+    res.sendFile(path.resolve(_dirname, 'build', 'index.html'));
 });
