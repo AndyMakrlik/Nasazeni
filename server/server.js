@@ -57,15 +57,19 @@ app.use("/uploads", express.static(path.join('./uploads')));
 
 app.use(cookie());
 
-const db = await mysql2.createConnection({
+const db = mysql2.createPool({
     host: process.env.MYSQL_ADDON_HOST,
     user: process.env.MYSQL_ADDON_USER,
     password: process.env.MYSQL_ADDON_PASSWORD,
-    database: process.env.MYSQL_ADDON_DB
+    database: process.env.MYSQL_ADDON_DB,
+    port: process.env.MYSQL_ADDON_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
 //Kontrola připojení k databázi
-db.promise().query('SELECT 1')
+db.query('SELECT 1')
   .then(() => console.log('✅ Připojeno k databázi'))
   .catch(err => console.error('❌ Chyba při připojení k databázi:', err));
 
