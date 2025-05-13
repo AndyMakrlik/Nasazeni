@@ -13,6 +13,7 @@ import 'dotenv/config';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { v2 as cloudinary } from 'cloudinary';
+import { Readable } from 'stream';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -508,9 +509,10 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
                         }
                     );
 
-                    // Convert buffer to stream and pipe to Cloudinary
-                    const bufferStream = new require('stream').PassThrough();
-                    bufferStream.end(file.buffer);
+                    // Create a readable stream from the buffer using the imported Readable
+                    const bufferStream = new Readable();
+                    bufferStream.push(file.buffer);
+                    bufferStream.push(null);
                     bufferStream.pipe(uploadStream);
                 });
             });
