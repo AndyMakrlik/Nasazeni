@@ -95,7 +95,7 @@ const verifyUser = (req, res, next) => {
 app.get('/user/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const [userData] = await db.promise().query(
+        const [userData] = await db.query(
             'SELECT uzivatel.id, uzivatel.jmeno, uzivatel.prijmeni, uzivatel.email, uzivatel.telefon, uzivatel.kraj, uzivatel.mesto, uzivatel.role FROM uzivatel WHERE id = ?',
             [id]
         );
@@ -123,7 +123,7 @@ app.post('/createChat', verifyUser, async (req, res) => {
 
     try {
         // Ověříme, zda již konverzace existuje
-        const [result] = await db.promise().query(sqlCheck, [curId, userId, userId, curId]);
+        const [result] = await db.query(sqlCheck, [curId, userId, userId, curId]);
 
         if (result.length > 0) {
             return res.json({ Status: "Exists", ChatId: result[0].id });
@@ -134,7 +134,7 @@ app.post('/createChat', verifyUser, async (req, res) => {
             INSERT INTO konverzace (fk_uzivatel1, fk_uzivatel2) VALUES (?, ?)
         `;
 
-        const [insertResult] = await db.promise().query(sqlInsert, [curId, userId]);
+        const [insertResult] = await db.query(sqlInsert, [curId, userId]);
 
         return res.json({ Status: "Success", ChatId: insertResult.insertId });
 
@@ -148,7 +148,7 @@ app.post('/createChat', verifyUser, async (req, res) => {
 app.get('/recenze/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const [recenze] = await db.promise().query(
+        const [recenze] = await db.query(
             'SELECT uzivatel.jmeno, uzivatel.prijmeni, hodnoceni.hodnoceni, hodnoceni.komentar, hodnoceni.datum_vytvoreni FROM hodnoceni JOIN uzivatel ON fk_uzivatel_hodnotici = uzivatel.id WHERE fk_uzivatel_hodnoceny = ?  ORDER BY hodnoceni.datum_vytvoreni DESC',
             [id]
         );
@@ -166,7 +166,7 @@ app.post('/zpravy/:id', verifyUser, async (req, res) => {
     const userId = req.id;
 
     try {
-        const [insertResult] = await db.promise().query(
+        const [insertResult] = await db.query(
             `INSERT INTO zprava (fk_konverzace, fk_uzivatel, obsah, datum_odeslani) 
              VALUES (?, ?, ?, NOW())`,
             [id, userId, obsah]
@@ -184,7 +184,7 @@ app.get('/zpravy/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
     try {
-        const [zpravy] = await db.promise().query(
+        const [zpravy] = await db.query(
             `SELECT zprava.id, zprava.obsah, zprava.datum_odeslani, 
             uzivatel.jmeno AS odesilatel_jmeno, uzivatel.prijmeni AS odesilatel_prijmeni
             FROM zprava
@@ -206,7 +206,7 @@ app.get('/recenzeUzivatele/:id', verifyUser, async (req, res) => {
     const { id } = req.params;
     const userId = req.id;
     try {
-        const [recenze] = await db.promise().query(
+        const [recenze] = await db.query(
             'SELECT * FROM hodnoceni WHERE fk_uzivatel_hodnoceny = ? AND fk_uzivatel_hodnotici = ?',
             [id, userId]
         );
@@ -228,7 +228,7 @@ app.post('/recenze/:id', verifyUser, async (req, res) => {
     const { stars, comment } = req.body;
 
     try {
-        const [result] = await db.promise().query(
+        const [result] = await db.query(
             'INSERT INTO hodnoceni (fk_uzivatel_hodnoceny, fk_uzivatel_hodnotici, hodnoceni, komentar, datum_vytvoreni) VALUES (?, ?, ?, ?, NOW())',
             [id, userId, stars, comment]
         );
@@ -247,7 +247,7 @@ app.put('/recenze/:id', verifyUser, async (req, res) => {
     const { stars, comment } = req.body;
 
     try {
-        const [result] = await db.promise().query(
+        const [result] = await db.query(
             'UPDATE hodnoceni SET hodnoceni = ?, komentar = ?, datum_vytvoreni = NOW() WHERE fk_uzivatel_hodnoceny = ? AND fk_uzivatel_hodnotici = ?',
             [stars, comment, id, userId]
         );
@@ -267,7 +267,7 @@ app.put('/recenze/:id', verifyUser, async (req, res) => {
 app.put('/recenze/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const [recenze] = await db.promise().query(
+        const [recenze] = await db.query(
             'UPDATE hodnoceni.hodnoceni, hodnoceni.komentar, hodnoceni.datum_vytvoreni FROM hodnoceni WHERE fk_uzivatel_hodnoceny = ?',
             [id]
         );
@@ -282,7 +282,7 @@ app.put('/recenze/:id', async (req, res) => {
 app.get('/pocetNote', verifyUser, async (req, res) => {
     const userId = req.id;
     try {
-        const [rows] = await db.promise().query(
+        const [rows] = await db.query(
             'SELECT COUNT(*) AS count FROM notifikace WHERE fk_uzivatel = ? AND precteno = FALSE',
             [userId]
         );
@@ -304,18 +304,18 @@ app.get('/check', verifyUser, (req, res) => {
 app.delete('/user/:id', async (req, res) => {
     const userId = req.params.id;
     try {
-        await db.promise().query('DELETE FROM oblibene WHERE fk_uzivatel = ?', [userId]);
+        await db.query('DELETE FROM oblibene WHERE fk_uzivatel = ?', [userId]);
 
-        const ads = await db.promise().query('SELECT id, fk_auto FROM inzerat WHERE fk_uzivatel = ?', [userId]);
+        const ads = await db.query('SELECT id, fk_auto FROM inzerat WHERE fk_uzivatel = ?', [userId]);
 
         if (ads[0].length > 0) {
             for (const ad of ads[0]) {
                 const adId = ad.id;
                 const carId = ad.fk_auto;
 
-                await db.promise().query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
+                await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
 
-                const images = await db.promise().query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
+                const images = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
                 // Získání a smazání obrázků
                 if (images.length > 0) {
@@ -328,17 +328,17 @@ app.delete('/user/:id', async (req, res) => {
                         }
                     });
                 }
-                await db.promise().query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
+                await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
                 // Smazání inzerátu
-                await db.promise().query('DELETE FROM inzerat WHERE id = ?', [adId]);
+                await db.query('DELETE FROM inzerat WHERE id = ?', [adId]);
 
                 // Smazání auta
-                await db.promise().query('DELETE FROM auto WHERE id = ?', [carId]);
+                await db.query('DELETE FROM auto WHERE id = ?', [carId]);
             }
         }
 
-        await db.promise().query('DELETE FROM uzivatel WHERE id = ?', [userId]);
+        await db.query('DELETE FROM uzivatel WHERE id = ?', [userId]);
 
         return res.json({ Status: 'Success' });
     } catch (error) {
@@ -352,7 +352,7 @@ app.get('/konverzace/:id/uzivatele', verifyUser, async (req, res) => {
     const userId = req.id;
 
     try {
-        const [rows] = await db.promise().query(
+        const [rows] = await db.query(
             'SELECT * FROM konverzace WHERE id = ? AND (fk_uzivatel1 = ? OR fk_uzivatel2 = ?)',
             [id, userId, userId]
         );
@@ -374,7 +374,7 @@ app.post('/user/:id/role', async (req, res) => {
     const { role } = req.body;
     const sql = 'UPDATE uzivatel SET role = ? WHERE id = ?';
     try {
-        await db.promise().query(sql, [role, userId]);
+        await db.query(sql, [role, userId]);
         return res.json({ Status: 'Success' });
     } catch (error) {
         return res.json({ Error: 'Chyba při změně role uživatele.' });
@@ -385,7 +385,7 @@ app.get('/userList', verifyUser, async (req, res) => {
     const currentUserId = req.id;
     const sql = 'SELECT uzivatel.id, uzivatel.jmeno, uzivatel.prijmeni, uzivatel.email, uzivatel.telefon, uzivatel.role, uzivatel.datum_registrace FROM uzivatel WHERE uzivatel.id != ?;';
     try {
-        const [users] = await db.promise().query(sql, [currentUserId]);
+        const [users] = await db.query(sql, [currentUserId]);
 
         if (users.length === 0) {
             return;
@@ -418,7 +418,7 @@ app.get('/adList', verifyUser, async (req, res) => {
       ;
     `;
     try {
-        const [ads] = await db.promise().query(sql);
+        const [ads] = await db.query(sql);
 
         if (ads.length === 0) {
             return res.json({ Status: "Error", Error: "Žádné inzeráty nebyly nalezeny." });
@@ -444,30 +444,30 @@ app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         console.log('Auto:', auto);
         console.log('Specifikace:', specifikace);
 
-        const [znacka] = await db.promise().query('SELECT id FROM znacka WHERE nazev = ?', [auto.znacka]);
+        const [znacka] = await db.query('SELECT id FROM znacka WHERE nazev = ?', [auto.znacka]);
         let znackaId;
         if (znacka.length === 0) {
-            const [result] = await db.promise().query('INSERT INTO znacka (nazev) VALUES (?)', [auto.znacka]);
+            const [result] = await db.query('INSERT INTO znacka (nazev) VALUES (?)', [auto.znacka]);
             znackaId = result.insertId;
         } else {
             znackaId = znacka[0].id;
         }
-        const [model] = await db.promise().query('SELECT id FROM model WHERE nazev = ? AND fk_znacka = ?', [auto.model, znackaId]);
+        const [model] = await db.query('SELECT id FROM model WHERE nazev = ? AND fk_znacka = ?', [auto.model, znackaId]);
         let modelId;
         if (model.length === 0) {
-            const [result] = await db.promise().query('INSERT INTO model (nazev, fk_znacka) VALUES (?, ?)', [auto.model, znackaId]);
+            const [result] = await db.query('INSERT INTO model (nazev, fk_znacka) VALUES (?, ?)', [auto.model, znackaId]);
             modelId = result.insertId;
         } else {
             modelId = model[0].id;
         }
-        const [autoResult] = await db.promise().query(
+        const [autoResult] = await db.query(
             `INSERT INTO auto (fk_model, rok_vyroby, vykon_kw, palivo, karoserie, barva, najete_km, objem, pohon, prevodovka, vin, pocet_sedadel, pocet_dveri)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [modelId, specifikace.rokVyroby, specifikace.vykon, specifikace.palivo, auto.karoserie, specifikace.barva, specifikace.najeto, specifikace.objem, specifikace.pohon, specifikace.prevodovka, specifikace.vin, auto.pocetSedadel, auto.pocetDveri]
         );
         const autoId = autoResult.insertId;
 
-        const [inzeratSQL] = await db.promise().query(
+        const [inzeratSQL] = await db.query(
             `INSERT INTO inzerat (nazev, cena, popis, fk_auto, fk_uzivatel)
              VALUES (?, ?, ?, ?, ?)`,
             [inzerat.nazev, inzerat.cena, inzerat.popis, autoId, userId]
@@ -485,7 +485,7 @@ app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
             });
 
             for (const { filePath, hlavni } of filePaths) {
-                await db.promise().query(
+                await db.query(
                     'INSERT INTO obrazky (fk_inzerat, obrazek, hlavni) VALUES (?, ?, ?)',
                     [inzeratId, filePath, hlavni]
                 );
@@ -502,13 +502,13 @@ app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
 app.post('/registrace', async (req, res) => {
     try {
         const checkPhoneNumberSql = "SELECT * FROM uzivatel WHERE telefon = ?";
-        const [phoneResult] = await db.promise().query(checkPhoneNumberSql, [req.body.celyTelefon]);
+        const [phoneResult] = await db.query(checkPhoneNumberSql, [req.body.celyTelefon]);
         if (phoneResult.length > 0) {
             return res.json({ Error: "Tento telefon je již zaregistrován." });
         }
 
         const checkEmailSql = "SELECT * FROM uzivatel WHERE email = ?";
-        const [emailResult] = await db.promise().query(checkEmailSql, [req.body.email]);
+        const [emailResult] = await db.query(checkEmailSql, [req.body.email]);
         if (emailResult.length > 0) {
             return res.json({ Error: "Tento e-mail je již zaregistrován." });
         }
@@ -527,7 +527,7 @@ app.post('/registrace', async (req, res) => {
             req.body.mesto
         ];
 
-        await db.promise().query(sql, values);
+        await db.query(sql, values);
 
         return res.json({ Status: "Success" });
 
@@ -542,8 +542,8 @@ app.post('/favor', verifyUser, async (req, res) => {
     const { carId, cena } = req.body;
     const sql = 'INSERT INTO oblibene (`fk_uzivatel`, `fk_inzerat`, `cenaPriUlozeni`) VALUES (?, ?, ?)';
     try {
-        await db.promise().query(sql, [id, carId, cena]);
-        await db.promise().query('UPDATE inzerat SET pocet_oblibenych = pocet_oblibenych + 1 WHERE id = ?', [carId]);
+        await db.query(sql, [id, carId, cena]);
+        await db.query('UPDATE inzerat SET pocet_oblibenych = pocet_oblibenych + 1 WHERE id = ?', [carId]);
         res.json({ Status: 'Success' });
     }
     catch (err) {
@@ -557,8 +557,8 @@ app.delete('/favor/:carId', verifyUser, async (req, res) => {
     const { carId } = req.params;
     const sql = 'DELETE FROM oblibene WHERE fk_uzivatel = ? AND fk_inzerat = ?';
     try {
-        await db.promise().query(sql, [id, carId]);
-        await db.promise().query('UPDATE inzerat SET pocet_oblibenych = GREATEST(pocet_oblibenych - 1, 0) WHERE id = ?', [carId]);
+        await db.query(sql, [id, carId]);
+        await db.query('UPDATE inzerat SET pocet_oblibenych = GREATEST(pocet_oblibenych - 1, 0) WHERE id = ?', [carId]);
         res.json({ Status: 'Success' });
     } catch (err) {
         res.json({ Error: 'Nepodařilo se odebrat auto z oblíbených.' });
@@ -570,7 +570,7 @@ app.get('/favor', verifyUser, async (req, res) => {
     const id = req.id;
     const sql = 'SELECT fk_inzerat FROM oblibene WHERE fk_uzivatel = ?';
     try {
-        const [favourites] = await db.promise().query(sql, [id]);
+        const [favourites] = await db.query(sql, [id]);
         res.json({ Status: 'Success', favourites });
     } catch (err) {
         console.error(err);
@@ -585,7 +585,7 @@ app.get('/singleFavourite/:carId', verifyUser, async (req, res) => {
     const sql = 'SELECT 1 FROM oblibene WHERE fk_uzivatel = ? AND fk_inzerat = ? LIMIT 1';
 
     try {
-        const [rows] = await db.promise().query(sql, [id, carId]);
+        const [rows] = await db.query(sql, [id, carId]);
 
         if (rows.length > 0) {
             return res.json({ Status: "Success" });
@@ -632,7 +632,7 @@ app.get('/favourites', verifyUser, async (req, res) => {
     `;
 
     try {
-        const [cars] = await db.promise().query(sql, [id]);
+        const [cars] = await db.query(sql, [id]);
 
         if (cars.length === 0) {
             return;
@@ -649,7 +649,7 @@ app.post('/prihlaseni', async (req, res) => {
     try {
         const sql = 'SELECT * FROM uzivatel WHERE email = ?';
 
-        const [userData] = await db.promise().query(sql, [req.body.email]);
+        const [userData] = await db.query(sql, [req.body.email]);
 
         if (userData.length === 0) {
             return res.json({ Error: "Tento email není registrován" });
@@ -674,7 +674,7 @@ app.post('/prihlaseni', async (req, res) => {
 app.post('/resetPassword', async (req, res) => {
     try {
         const sql = 'SELECT * FROM uzivatel WHERE email = ?';
-        const [userData] = await db.promise().query(sql, [req.body.email]);
+        const [userData] = await db.query(sql, [req.body.email]);
 
         if (userData.length === 0) {
             return res.json({ Error: "Tento email není registrován." });
@@ -729,7 +729,7 @@ app.post('/restorePassword/:token', async (req, res) => {
         const hash = await bcryptjs.hash(heslo, 10);
 
         const sqlChange = 'UPDATE uzivatel SET heslo = ? WHERE id = ?';
-        const [result] = await db.promise().query(sqlChange, [hash, userId]);
+        const [result] = await db.query(sqlChange, [hash, userId]);
 
         if (result.affectedRows > 0) {
             res.clearCookie('reset');
@@ -748,7 +748,7 @@ app.get('/profile', verifyUser, async (req, res) => {
     const sql = 'SELECT id, jmeno, prijmeni, email, telefon, kraj, mesto, role FROM uzivatel WHERE id = ?';
 
     try {
-        const [result] = await db.promise().query(sql, [id]);
+        const [result] = await db.query(sql, [id]);
 
         if (result.length > 0) {
             return res.json({
@@ -824,7 +824,7 @@ app.get('/car/:id', async (req, res) => {
         ;
 
     try {
-        const [result] = await db.promise().query(sql, [id]);
+        const [result] = await db.query(sql, [id]);
 
         if (result.length > 0) {
             const car = result[0];
@@ -845,14 +845,14 @@ app.post('/profile', verifyUser, async (req, res) => {
     const id = req.id;
     try {
         if (req.body.isSamePhone === false) {
-            const [phoneResult] = await db.promise().query("SELECT * FROM uzivatel WHERE telefon = ?", [req.body.editData.telefon]);
+            const [phoneResult] = await db.query("SELECT * FROM uzivatel WHERE telefon = ?", [req.body.editData.telefon]);
             if (phoneResult.length > 0) {
                 return res.json({ Error: "Tento telefon je již zaregistrován" });
             }
         }
 
         if (req.body.isSameEmail === false) {
-            const [emailResult] = await db.promise().query("SELECT * FROM uzivatel WHERE email = ?", [req.body.editData.email]);
+            const [emailResult] = await db.query("SELECT * FROM uzivatel WHERE email = ?", [req.body.editData.email]);
             if (emailResult.length > 0) {
                 return res.json({ Error: "Tento e-mail je již zaregistrován" });
             }
@@ -868,7 +868,7 @@ app.post('/profile', verifyUser, async (req, res) => {
             req.body.editData.mesto,
             id
         ];
-        await db.promise().query(sql, values);
+        await db.query(sql, values);
         return res.json({ Status: "Success" });
     } catch (err) {
         return res.json({ Error: "Nastala chyba při zpracování požadavku." });
@@ -889,7 +889,7 @@ app.get('/chats', verifyUser, async (req, res) => {
         WHERE k.fk_uzivatel1 = ? OR k.fk_uzivatel2 = ?;
     `;
     try {
-        const [chats] = await db.promise().query(sql, [id, id]);
+        const [chats] = await db.query(sql, [id, id]);
 
         return res.json({ Status: "Success", id, chats });
     } catch (err) {
@@ -904,7 +904,7 @@ app.get('/notifications', verifyUser, async (req, res) => {
 `;
 
     try {
-        const [notifikace] = await db.promise().query(sql, [id]);
+        const [notifikace] = await db.query(sql, [id]);
 
         return res.json({ Status: "Success", notifikace });
     } catch (error) {
@@ -981,7 +981,7 @@ app.get('/cars', async (req, res) => {
     }
 
     try {
-        const [cars] = await db.promise().query(sql, values);
+        const [cars] = await db.query(sql, values);
         return res.json({ Status: "Success", cars });
     } catch (error) {
         console.error(error);
@@ -993,7 +993,7 @@ app.get('/simCars/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [refResult] = await db.promise().query(
+        const [refResult] = await db.query(
             'SELECT cena FROM inzerat WHERE id = ?',
             [id]
         );
@@ -1002,7 +1002,7 @@ app.get('/simCars/:id', async (req, res) => {
         const minCena = refCena * 0.85;
         const maxCena = refCena * 1.15;
 
-        const [cars] = await db.promise().query(`
+        const [cars] = await db.query(`
             SELECT 
                 inzerat.id, 
                 inzerat.nazev, 
@@ -1164,7 +1164,7 @@ app.get('/carsfilter', async (req, res) => {
     }
 
     try {
-        const [cars] = await db.promise().query(sql, values);
+        const [cars] = await db.query(sql, values);
         return res.json({ Status: "Success", cars });
     } catch (error) {
         console.error(error);
@@ -1187,7 +1187,7 @@ app.get('/models/:brandId', async (req, res) => {
     try {
         const { brandId } = req.params;
 
-        const [rows] = await db.promise().query(`
+        const [rows] = await db.query(`
             SELECT model.id, model.nazev 
             FROM model
             WHERE model.fk_znacka = ?
@@ -1202,7 +1202,7 @@ app.get('/models/:brandId', async (req, res) => {
 
 app.get('/brands', async (req, res) => {
     try {
-        const [rows] = await db.promise().query(`
+        const [rows] = await db.query(`
         SELECT DISTINCT znacka.id, znacka.nazev 
         FROM znacka
         JOIN model ON model.fk_znacka = znacka.id
@@ -1216,7 +1216,7 @@ app.get('/brands', async (req, res) => {
 
 app.get('/karoserie', async (req, res) => {
     try {
-        const [rows] = await db.promise().query(`
+        const [rows] = await db.query(`
         SELECT DISTINCT auto.karoserie
         FROM auto
       `);
@@ -1228,7 +1228,7 @@ app.get('/karoserie', async (req, res) => {
 
 app.get('/pocet_dveri', async (req, res) => {
     try {
-        const [rows] = await db.promise().query(`
+        const [rows] = await db.query(`
         SELECT DISTINCT auto.pocet_dveri
         FROM auto
         ORDER BY auto.pocet_dveri ASC
@@ -1241,7 +1241,7 @@ app.get('/pocet_dveri', async (req, res) => {
 
 app.get('/barvy', async (req, res) => {
     try {
-        const [rows] = await db.promise().query(`
+        const [rows] = await db.query(`
         SELECT DISTINCT auto.barva
         FROM auto
       `);
@@ -1256,7 +1256,7 @@ app.post("/notifyNewMsg", async (req, res) => {
 
     try {
 
-        await db.promise().query(
+        await db.query(
             `INSERT INTO notifikace (fk_uzivatel, typ, zprava, fk_konverzace)
                  VALUES (?, 'Nová Zpráva', ?, ?)`,
             [
@@ -1278,7 +1278,7 @@ app.post("/notifyReportAdd", async (req, res) => {
 
     try {
 
-        await db.promise().query(
+        await db.query(
             `INSERT INTO notifikace (fk_uzivatel, typ, zprava, fk_hodnoceni)
                  VALUES (?, 'Nové hodnocení', ?, ?)`,
             [
@@ -1299,7 +1299,7 @@ app.post("/notifyPriceChange", async (req, res) => {
     const { name, newPrice, oldPrice, id } = req.body;
 
     try {
-        const [oblibeniUzivatele] = await db.promise().query(
+        const [oblibeniUzivatele] = await db.query(
             "SELECT fk_uzivatel FROM oblibene WHERE fk_inzerat = ?",
             [id]
         );
@@ -1308,7 +1308,7 @@ app.post("/notifyPriceChange", async (req, res) => {
         const formattedNewPrice = Number(newPrice).toLocaleString('cs-CZ');
 
         for (const uzivatel of oblibeniUzivatele) {
-            await db.promise().query(
+            await db.query(
                 `INSERT INTO notifikace (fk_uzivatel, typ, zprava, fk_inzerat)
                  VALUES (?, 'Změna ceny', ?, ?)`,
                 [
@@ -1330,13 +1330,13 @@ app.post("/notifyStatusChange", async (req, res) => {
     const { name, newStav, oldStav, id } = req.body;
 
     try {
-        const [oblibeniUzivatele] = await db.promise().query(
+        const [oblibeniUzivatele] = await db.query(
             "SELECT fk_uzivatel FROM oblibene WHERE fk_inzerat = ?",
             [id]
         );
 
         for (const uzivatel of oblibeniUzivatele) {
-            await db.promise().query(
+            await db.query(
                 `INSERT INTO notifikace (fk_uzivatel, typ, zprava, fk_inzerat)
                  VALUES (?, 'Změna stavu', ?, ?)`,
                 [
@@ -1359,9 +1359,9 @@ app.delete('/ad/:adId/:carId', async (req, res) => {
     const { adId, carId } = req.params;
 
     try {
-        await db.promise().query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
+        await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
 
-        const images = await db.promise().query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
+        const images = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
         if (images.length > 0) {
             images[0].forEach(image => {
@@ -1374,13 +1374,13 @@ app.delete('/ad/:adId/:carId', async (req, res) => {
             });
         }
 
-        await db.promise().query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
+        await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
         // Odstranění samotného inzerátu
-        await db.promise().query('DELETE FROM inzerat WHERE id = ?', [adId]);
+        await db.query('DELETE FROM inzerat WHERE id = ?', [adId]);
 
         // Odstranění auta
-        await db.promise().query('DELETE FROM auto WHERE id = ?', [carId]);
+        await db.query('DELETE FROM auto WHERE id = ?', [carId]);
 
         res.json({ Status: 'Success' });
     } catch (error) {
@@ -1394,7 +1394,7 @@ app.delete('/history/:adId', verifyUser, async (req, res) => {
     const { adId } = req.params;
 
     try {
-        await db.promise().query('DELETE FROM historie WHERE fk_uzivatel = ? AND fk_inzerat = ?', [userId, adId]);
+        await db.query('DELETE FROM historie WHERE fk_uzivatel = ? AND fk_inzerat = ?', [userId, adId]);
 
         res.json({ Status: 'Success' });
     } catch (error) {
@@ -1407,7 +1407,7 @@ app.delete('/note/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
-        await db.promise().query('DELETE FROM notifikace WHERE id = ?', [id]);
+        await db.query('DELETE FROM notifikace WHERE id = ?', [id]);
 
         res.json({ Status: 'Success' });
     } catch (error) {
@@ -1420,7 +1420,7 @@ app.post('/note/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
-        await db.promise().query('UPDATE notifikace SET precteno = 1 WHERE id = ?', [id]);
+        await db.query('UPDATE notifikace SET precteno = 1 WHERE id = ?', [id]);
 
         res.json({ Status: 'Success' });
     } catch (error) {
@@ -1440,7 +1440,7 @@ app.post('/editAdd', async (req, res) => {
         `;
         const values = [data.car.nazev, data.car.cena, data.car.popis, data.car.stav || 'Aktivní', data.car.id];
 
-        await db.promise().query(sql, values)
+        await db.query(sql, values)
 
         res.json({ Status: "Success" })
     } catch (error) {
@@ -1497,7 +1497,7 @@ app.get('/myadd', verifyUser, async (req, res) => {
 `;
 
     try {
-        const [cars] = await db.promise().query(sql, [userId]);
+        const [cars] = await db.query(sql, [userId]);
 
         if (cars.length > 0) {
 
@@ -1514,7 +1514,7 @@ app.get('/myadd', verifyUser, async (req, res) => {
 app.post('/zobrazeni', async (req, res) => {
     const { carId } = req.body;
     try {
-        await db.promise().query('UPDATE inzerat SET pocet_zobrazeni = pocet_zobrazeni + 1 WHERE id = ?', [carId]);
+        await db.query('UPDATE inzerat SET pocet_zobrazeni = pocet_zobrazeni + 1 WHERE id = ?', [carId]);
         res.json({ Status: "Success" });
     } catch (err) {
         console.error(err);
@@ -1527,18 +1527,18 @@ app.post('/visit', verifyUser, async (req, res) => {
     const { carId } = req.body;
 
     try {
-        const [rows] = await db.promise().query(
+        const [rows] = await db.query(
             'SELECT * FROM historie WHERE fk_uzivatel = ? AND fk_inzerat = ?',
             [userId, carId]
         );
 
         if (rows.length > 0) {
-            await db.promise().query(
+            await db.query(
                 'UPDATE historie SET datum_navstevy = NOW() WHERE fk_uzivatel = ? AND fk_inzerat = ?',
                 [userId, carId]
             );
         } else {
-            await db.promise().query(
+            await db.query(
                 'INSERT INTO historie (fk_uzivatel, fk_inzerat, datum_navstevy) VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE datum_navstevy = NOW()',
                 [userId, carId]
             );
@@ -1603,7 +1603,7 @@ app.get('/history', verifyUser, async (req, res) => {
 `;
 
     try {
-        const [cars] = await db.promise().query(sql, [userId]);
+        const [cars] = await db.query(sql, [userId]);
 
         if (cars.length > 0) {
 
