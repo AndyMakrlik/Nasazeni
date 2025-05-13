@@ -1394,7 +1394,9 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
             }
         }
 
-        // Delete database records
+        // Delete all related records in the correct order to respect foreign key constraints
+        await db.query('DELETE FROM historie WHERE fk_inzerat = ?', [adId]);
+        await db.query('DELETE FROM notifikace WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM inzerat WHERE id = ?', [adId]);
