@@ -1,5 +1,5 @@
 import express from 'express';
-import mysql2 from 'mysql2';
+import mysql2 from 'mysql2/promise';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
@@ -9,6 +9,7 @@ import session from 'express-session';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import 'dotenv/config';
 
 const app = express();
 const port = 3001;
@@ -56,21 +57,24 @@ app.use("/uploads", express.static(path.join('./uploads')));
 
 app.use(cookie());
 
-const db = mysql2.createConnection({
+
+
+const db = mysql2.createPool({
     host: process.env.MYSQL_ADDON_HOST,
     user: process.env.MYSQL_ADDON_USER,
     password: process.env.MYSQL_ADDON_PASSWORD,
-    database: process.env.MYSQL_ADDON_DB
+    database: process.env.MYSQL_ADDON_DB,
+    port: process.env.MYSQL_ADDON_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
 });
 
+
 //Kontrola připojení k databázi
-db.connect((err) => {
-    if (err) {
-        console.log('Chyba při připojení k databázi: ' + err);
-        return;
-    }
-    console.log('Připojeno k databázi');
-});
+db.query('SELECT 1')
+  .then(() => console.log('✅ Připojeno k databázi'))
+  .catch(err => console.error('❌ Chyba při připojení k databázi:', err));
 
 //Kontrola přihlášení
 const verifyUser = (req, res, next) => {
