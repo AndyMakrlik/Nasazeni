@@ -10,10 +10,48 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import 'dotenv/config';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const port = 3001;
 
+// Middleware setup
+app.use(express.json());
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    methods: ['POST', 'GET', 'DELETE', 'PUT'],
+    credentials: true
+}));
+
+app.use(session({
+    secret: 'secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false,
+        httpOnly: false,
+        sameSite: 'strict'
+    }
+}));
+
+app.use((req, res, next) => {
+    res.locals.session = req.session.user;
+    next();
+});
+
+app.use(cookie());
+
+// Serve static files from the build directory
+app.use(express.static(path.join(__dirname, 'build')));
+
+// Handle uploads directory for images
+app.use("/uploads", express.static(path.join(__dirname, 'uploads')));
+
+// Your existing storage configuration for multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -25,37 +63,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage })
-
-app.use(express.json());
-
-app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    methods: ['POST', 'GET', 'DELETE', 'PUT'],
-    credentials: true
-}));
-
-
-app.use(session({
-    secret: 'secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: false,
-        httpOnly: false,
-        sameSite: 'strict'
-    }
-}))
-
-app.use((req, res, next) => {
-    res.locals.session = req.session.user;
-    next();
-})
-
-app.use("/uploads", express.static(path.join('./uploads')));
-
-
-app.use(cookie());
+const upload = multer({ storage: storage });
 
 const db = mysql2.createPool({
     host: process.env.MYSQL_ADDON_HOST,
@@ -1172,17 +1180,6 @@ app.get('/carsfilter', async (req, res) => {
     }
 });
 
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-
-const __dirname = dirname(__filename);
-
-const uploadsPath = join(__dirname, 'uploads');
-
-console.log(uploadsPath);
-
 app.get('/models/:brandId', async (req, res) => {
     try {
         const { brandId } = req.params;
@@ -1634,12 +1631,7 @@ app.listen(port, () => {
     console.log(`Server běží na portu ${port}...`);
 });
 
-const _filename = fileURLToPath(import.meta.url);
-const _dirname = path.dirname(_filename);
-
-app.use(express.static(path.join(_dirname, 'build')));
-
-// Pokud žádná jiná route nesedí, vrať index.html (React SPA routing)
+// This should be the LAST route
 app.get('*', (req, res) => {
-    res.sendFile(path.resolve(_dirname, 'build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
