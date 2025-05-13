@@ -1381,12 +1381,13 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
         const [images] = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
         // Delete from Cloudinary if images exist
-        if (images.length > 0) {
-            for (const image of images[0]) {
+        if (images && images.length > 0) {
+            for (const image of images) {
                 // Extract public_id from the Cloudinary URL
-                const publicId = image.obrazek.split('/').slice(-1)[0].split('.')[0];
+                const urlParts = image.obrazek.split('/');
+                const publicId = `car-ads/${urlParts[urlParts.length - 1].split('.')[0]}`;
                 try {
-                    await cloudinary.uploader.destroy(`car-ads/${publicId}`);
+                    await cloudinary.uploader.destroy(publicId);
                 } catch (cloudinaryError) {
                     console.error('Error deleting from Cloudinary:', cloudinaryError);
                 }
