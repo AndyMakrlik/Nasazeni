@@ -9,6 +9,7 @@ import session from 'express-session';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import 'dotenv/config';
 
 const app = express();
@@ -1634,10 +1635,12 @@ app.listen(port, () => {
     console.log(`Server běží na portu ${port}...`);
 });
 
-// 1. Slouží k obsluze statických souborů z build složky
-app.use(express.static(path.join(__dirname, "./build")));
+// Serve frontend routes (fallback)
 
-// 2. Jakákoli jiná GET žádost → index.html (React přebírá routování)
-app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "build", "index.html"));
+
+app.use(express.static(path.join(__dirname, 'client', 'build')));
+
+// Pokud žádná jiná route nesedí, vrať index.html (React SPA routing)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 });
