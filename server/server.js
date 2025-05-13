@@ -1634,12 +1634,12 @@ app.listen(port, () => {
     console.log(`Server běží na portu ${port}...`);
 });
 
-// Serve frontend routes (fallback)
+const _filename = fileURLToPath(import.meta.url);
+const _dirname = path.dirname(_filename);
 
-
-app.use(express.static(path.join(__dirname, 'build')));
+app.use(express.static(path.join(_dirname, 'build')));
 
 // Pokud žádná jiná route nesedí, vrať index.html (React SPA routing)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    res.sendFile(path.join(_dirname, 'build', 'index.html'));
 });
