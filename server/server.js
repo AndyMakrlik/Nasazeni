@@ -30,7 +30,7 @@ const upload = multer({ storage: storage })
 app.use(express.json());
 
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
     methods: ['POST', 'GET', 'DELETE', 'PUT'],
     credentials: true
 }));
@@ -57,8 +57,6 @@ app.use("/uploads", express.static(path.join('./uploads')));
 
 app.use(cookie());
 
-
-
 const db = mysql2.createPool({
     host: process.env.MYSQL_ADDON_HOST,
     user: process.env.MYSQL_ADDON_USER,
@@ -69,7 +67,6 @@ const db = mysql2.createPool({
     connectionLimit: 10,
     queueLimit: 0,
 });
-
 
 //Kontrola připojení k databázi
 db.query('SELECT 1')
@@ -323,7 +320,7 @@ app.delete('/user/:id', async (req, res) => {
                 // Získání a smazání obrázků
                 if (images.length > 0) {
                     images[0].forEach(image => {
-                        const imagePath = path.join(__dirname, image.obrazek.replace(`${process.env.CLIENT_URL}/`, ''));
+                        const imagePath = path.join(__dirname, image.obrazek.replace('http://localhost:3001/', ''));
                         if (imagePath) {
                             fs.unlinkSync(imagePath)
                         } else {
@@ -482,7 +479,7 @@ app.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         if (req.files && req.files.length > 0) {
             const filePaths = req.files.map((file, index) => {
                 return {
-                    filePath: `${process.env.CLIENT_URL}/uploads/${file.filename}`,
+                    filePath: `http://localhost:3001/uploads/${file.filename}`,
                     hlavni: index === 0
                 };
             });
@@ -704,7 +701,7 @@ app.post('/resetPassword', async (req, res) => {
             from: 'sportovniautainfo@gmail.com',
             to: req.body.email,
             subject: 'Resetování hesla',
-            text: `Odkaz je platný po dobu 10 minut: ${process.env.CLIENT_URL}/restorePassword/${token}`
+            text: `Odkaz je platný po dobu 10 minut: http://localhost:3000/restorePassword/${token}`
         };
 
         await transporter.sendMail(mailOptions);
@@ -991,6 +988,58 @@ app.get('/cars', async (req, res) => {
         return res.json({ Error: 'Chyba při načítání inzerátů.' });
     }
 });
+
+app.get('/simCars/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [refResult] = await db.promise().query(
+            'SELECT cena FROM inzerat WHERE id = ?',
+            [id]
+        );
+
+        const refCena = refResult[0].cena;
+        const minCena = refCena * 0.85;
+        const maxCena = refCena * 1.15;
+
+        const [cars] = await db.promise().query(`
+            SELECT 
+                inzerat.id, 
+                inzerat.nazev, 
+                inzerat.cena, 
+                inzerat.stav, 
+                auto.najete_km, 
+                auto.rok_vyroby, 
+                auto.vykon_kw, 
+                auto.palivo, 
+                auto.karoserie, 
+                auto.prevodovka, 
+                uzivatel.kraj, 
+                obrazky.obrazek, 
+                znacka.nazev AS znacka, 
+                model.nazev AS model
+            FROM 
+                inzerat 
+            JOIN auto ON inzerat.fk_auto = auto.id 
+            JOIN model ON auto.fk_model = model.id 
+            JOIN znacka ON model.fk_znacka = znacka.id
+            JOIN uzivatel ON inzerat.fk_uzivatel = uzivatel.id 
+            JOIN obrazky ON inzerat.id = obrazky.fk_inzerat 
+            WHERE 
+                obrazky.hlavni = true
+                AND inzerat.id != ?
+                AND inzerat.cena BETWEEN ? AND ?
+                AND inzerat.stav != 'Zrušený'
+            LIMIT 3
+        `, [id, minCena, maxCena]);
+
+        return res.json({ Status: "Success", cars });
+    } catch (error) {
+        console.error(error);
+        return res.json({ Error: 'Chyba při načítání inzerátů.' });
+    }
+});
+
 
 app.get('/carsfilter', async (req, res) => {
     const { znacka, model, karoserie, pocetDveri, minSedadel, maxSedadel, prevodovka, palivo, barva, pohon, stav, rokOd, rokDo, vykonOd, vykonDo, objemOd, objemDo, najezdOd, najezdDo, cenaOd, cenaDo } = req.query;
@@ -1316,7 +1365,7 @@ app.delete('/ad/:adId/:carId', async (req, res) => {
 
         if (images.length > 0) {
             images[0].forEach(image => {
-                const imagePath = path.join(__dirname, image.obrazek.replace(`${process.env.CLIENT_URL}/`, ''));
+                const imagePath = path.join(__dirname, image.obrazek.replace('http://localhost:3001/', ''));
                 if (imagePath) {
                     fs.unlinkSync(imagePath)
                 } else {
