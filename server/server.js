@@ -9,7 +9,6 @@ import session from 'express-session';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import 'dotenv/config';
 
 const app = express();
