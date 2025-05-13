@@ -66,7 +66,7 @@ const db = mysql2.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-});
+}).promise();
 
 //Kontrola připojení k databázi
 db.query('SELECT 1')
