@@ -57,12 +57,12 @@ app.use("/uploads", express.static(path.join('./uploads')));
 
 app.use(cookie());
 
-const db = mysql2.createConnection({
+const db = await mysql2.createConnection({
     host: process.env.MYSQL_ADDON_HOST,
     user: process.env.MYSQL_ADDON_USER,
     password: process.env.MYSQL_ADDON_PASSWORD,
     database: process.env.MYSQL_ADDON_DB
-}).promise();
+});
 
 //Kontrola připojení k databázi
 db.promise().query('SELECT 1')
