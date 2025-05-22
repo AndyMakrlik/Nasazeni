@@ -1377,13 +1377,16 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
     const { adId, carId } = req.params;
 
     try {
+        // Get the model ID before deleting the car
+        const [carInfo] = await db.query('SELECT fk_model FROM auto WHERE id = ?', [carId]);
+        const modelId = carInfo[0]?.fk_model;
+
         // Get the image URLs before deleting the records
         const [images] = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
         // Delete from Cloudinary if images exist
         if (images && images.length > 0) {
             for (const image of images) {
-                // Extract public_id from the Cloudinary URL
                 const urlParts = image.obrazek.split('/');
                 const publicId = `car-ads/${urlParts[urlParts.length - 1].split('.')[0]}`;
                 try {
@@ -1394,13 +1397,37 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
             }
         }
 
-        // Delete all related records in the correct order to respect foreign key constraints
+        // Delete all related records in the correct order
         await db.query('DELETE FROM historie WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM notifikace WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM inzerat WHERE id = ?', [adId]);
         await db.query('DELETE FROM auto WHERE id = ?', [carId]);
+
+        if (modelId) {
+            // Check if this was the last car for this model
+            const [remainingCars] = await db.query('SELECT COUNT(*) as count FROM auto WHERE fk_model = ?', [modelId]);
+            
+            if (remainingCars[0].count === 0) {
+                // Get brand ID before deleting the model
+                const [modelInfo] = await db.query('SELECT fk_znacka FROM model WHERE id = ?', [modelId]);
+                const brandId = modelInfo[0]?.fk_znacka;
+                
+                // Delete the model since it has no more cars
+                await db.query('DELETE FROM model WHERE id = ?', [modelId]);
+
+                if (brandId) {
+                    // Check if this was the last model for this brand
+                    const [remainingModels] = await db.query('SELECT COUNT(*) as count FROM model WHERE fk_znacka = ?', [brandId]);
+                    
+                    if (remainingModels[0].count === 0) {
+                        // Delete the brand since it has no more models
+                        await db.query('DELETE FROM znacka WHERE id = ?', [brandId]);
+                    }
+                }
+            }
+        }
 
         res.json({ Status: 'Success' });
     } catch (error) {
