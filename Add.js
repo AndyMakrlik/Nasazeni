@@ -109,80 +109,70 @@ export default function Add() {
     setDroppedFiles(items);
   };
 
-  // Helper function to trim whitespace and remove multiple spaces
-  const cleanInput = (value) => {
-    if (typeof value !== 'string') return value;
-    return value.replace(/\s+/g, ' ').trim();
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
 
     const formData = new FormData();
 
-    // Clean all text inputs before submission
-    const formattedInzerat = {
-      ...inzerat,
-      nazev: cleanInput(inzerat.nazev),
-      popis: cleanInput(inzerat.popis)
-    };
-
+    // Format data before sending
+    const formattedInzerat = { ...inzerat };
     const formattedAuto = {
       ...auto,
-      znacka: cleanInput(auto.znacka).toLowerCase(),
-      model: cleanInput(auto.model).toLowerCase(),
-      karoserie: cleanInput(auto.karoserie).toLowerCase(),
-      pocetDveri: auto.pocetDveri.replace(/\s+/g, ''),
-      pocetSedadel: auto.pocetSedadel.replace(/\s+/g, '')
+      znacka: auto.znacka.toLowerCase(),
+      model: auto.model.toLowerCase(),
+      karoserie: auto.karoserie.toLowerCase()
     };
-
     const formattedSpecifikace = {
       ...specifikace,
-      barva: cleanInput(specifikace.barva).toLowerCase(),
-      najeto: specifikace.najeto.replace(/\s+/g, ''),
-      rokVyroby: specifikace.rokVyroby.replace(/\s+/g, ''),
-      vykon: specifikace.vykon.replace(/\s+/g, ''),
-      objem: specifikace.objem.replace(/\s+/g, '')
+      barva: specifikace.barva.toLowerCase()
     };
 
-    if (!formattedInzerat.nazev) {
+    inzerat.cena = inzerat.cena.replace(/\s+/g, '');
+    auto.pocetDveri = auto.pocetDveri.replace(/\s+/g, '');
+    auto.pocetSedadel = auto.pocetSedadel.replace(/\s+/g, '');
+    specifikace.najeto = specifikace.najeto.replace(/\s+/g, '');
+    specifikace.rokVyroby = specifikace.rokVyroby.replace(/\s+/g, '');
+    specifikace.vykon = specifikace.vykon.replace(/\s+/g, '');
+    specifikace.objem = specifikace.objem.replace(/\s+/g, '');
+
+    if (!inzerat.nazev) {
       toast.error('Název musí být vyplněný.');
-    } else if (!formattedInzerat.cena || Number(formattedInzerat.cena) <= 0 || isNaN(Number(formattedInzerat.cena))) {
+    } else if (!inzerat.cena || Number(inzerat.cena) <= 0 || isNaN(Number(inzerat.cena))) {
       toast.error('Cena musí být vyplněna a kladná.');
-    } else if (!formattedInzerat.stav) {
+    } else if (!inzerat.stav) {
       toast.error('Stav inzerátů musí být zvolen.');
-    } else if (!formattedInzerat.popis) {
+    } else if (!inzerat.popis) {
       toast.error('Popis musí být vyplněn.');
-    } else if (!formattedAuto.znacka) {
+    } else if (!auto.znacka) {
       toast.error('Značka musí být vyplněna');
-    } else if (!formattedAuto.model) {
+    } else if (!auto.model) {
       toast.error('Model musí být vyplněn.');
-    } else if (!formattedAuto.karoserie) {
+    } else if (!auto.karoserie) {
       toast.error('Karoserie musí být vyplněna.')
-    } else if (!formattedAuto.pocetDveri || isNaN(Number(formattedAuto.pocetDveri))) {
+    } else if (!auto.pocetDveri || isNaN(Number(auto.pocetDveri))) {
       toast.error('Počet dveří musí být vyplněn a napsán číslicí.')
-    } else if (!formattedAuto.pocetSedadel || isNaN(Number(formattedAuto.pocetSedadel))) {
+    } else if (!auto.pocetSedadel || isNaN(Number(auto.pocetSedadel))) {
       toast.error('Počet sedadel musí být vyplněn a napsán číslicí.')
-    } else if (!formattedSpecifikace.najeto || isNaN(Number(formattedSpecifikace.najeto))) {
+    } else if (!specifikace.najeto || isNaN(Number(specifikace.najeto))) {
       toast.error('Nájeté kilometry musí být vyplněny a napsány pouze číslovkou.')
-    } else if (!formattedSpecifikace.barva) {
+    } else if (!specifikace.barva) {
       toast.error('Barva musí být vyplněna.')
-    } else if (!formattedSpecifikace.rokVyroby || isNaN(Number(formattedSpecifikace.rokVyroby)) || formattedSpecifikace.rokVyroby > currentYear || formattedSpecifikace.rokVyroby < 1885) {
+    } else if (!specifikace.rokVyroby || isNaN(Number(specifikace.rokVyroby)) || specifikace.rokVyroby > currentYear || specifikace.rokVyroby < 1885) {
       toast.error(`Rok musí být vyplněn a napsán číslovkou a menší nebo roven ${currentYear}.`)
-    } else if (!formattedSpecifikace.prevodovka) {
+    } else if (!specifikace.prevodovka) {
       toast.error('Převodovka musí být zvolena.')
-    } else if (!formattedSpecifikace.vykon || isNaN(Number(formattedSpecifikace.vykon))) {
+    } else if (!specifikace.vykon || isNaN(Number(specifikace.vykon))) {
       toast.error('Výkon musí být vyplněn a napsán číslovkou.')
-    } else if (!formattedSpecifikace.objem || isNaN(Number(formattedSpecifikace.objem))) {
+    } else if (!specifikace.objem || isNaN(Number(specifikace.objem))) {
       toast.error('Objem musí být vyplněn a napsán číslovkou.')
-    } else if (!formattedSpecifikace.palivo) {
+    } else if (!specifikace.palivo) {
       toast.error('Palivo musí být zvoleno.')
-    } else if (!formattedSpecifikace.pohon) {
+    } else if (!specifikace.pohon) {
       toast.error('Pohon musí být zvolen.')
     } else if (!droppedFiles){
       toast.error('Musíte nahrát nejméně 1 obrázek.')
     } 
-    else {
+      else {
       droppedFiles.forEach((fileObj, index) => {
         formData.append(`images`, fileObj.file);
       });
@@ -204,32 +194,10 @@ export default function Add() {
     }
   };
 
-  // Simplified input handlers without cleaning
-  const handleInzeratChange = (field, value) => {
-    setInzerat(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleAutoChange = (field, value) => {
-    setAuto(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSpecifikaceChange = (field, value) => {
-    setSpecifikace(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Helper function to capitalize first letter only for display
-  const displayValue = (value) => {
-    if (!value) return '';
-    return value.charAt(0).toUpperCase() + value.slice(1);
+  // Helper function to capitalize first letter
+  const capitalizeFirstLetter = (string) => {
+    if (!string) return string;
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
   };
 
   return (
@@ -244,27 +212,13 @@ export default function Add() {
               </div>
               <div className='col-12 col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12'>
                 <label htmlFor='nazev' className='form-label'>Název</label>
-                <input 
-                  style={{ marginBottom: '20px' }} 
-                  id='nazev' 
-                  type='text' 
-                  className='form-control' 
-                  placeholder='Audi RS3 MATRIX'
-                  defaultValue={inzerat.nazev}
-                  onChange={e => setInzerat(prev => ({ ...prev, nazev: e.target.value }))}
-                />
+                <input style={{ marginBottom: '20px' }} id='nazev' type='text' className='form-control' placeholder='Audi RS3 MATRIX'
+                  onChange={e => setInzerat({ ...inzerat, nazev: e.target.value })}></input>
                 <div className='row'>
                   <div className='col-12 col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-sm-6'>
                     <label htmlFor='cena' className='form-label'>Cena</label>
                     <div className="input-group" style={{ marginBottom: '20px' }}>
-                      <input 
-                        id='cena' 
-                        type='text' 
-                        className='form-control' 
-                        placeholder='1 999 000'
-                        defaultValue={inzerat.cena}
-                        onChange={e => setInzerat(prev => ({ ...prev, cena: e.target.value }))}
-                      />
+                      <input id='cena' type='text' className='form-control' placeholder='1 999 000' onChange={e => setInzerat({ ...inzerat, cena: e.target.value })}></input>
                       <span className="input-group-text" style={{ backgroundColor: 'white' }}>Kč</span>
                     </div>
                   </div>
@@ -284,15 +238,8 @@ export default function Add() {
               </div>
               <div className='col-12 col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12'>
                 <label htmlFor='popis' className='form-label'>Popis</label>
-                <textarea 
-                  style={{ marginBottom: '20px', height: '128px' }} 
-                  id='popis' 
-                  type='text' 
-                  className="form-control" 
-                  placeholder='Zde napiště svůj popis vozu, závady, co chcete přidat k vozu, výbavu atd.'
-                  defaultValue={inzerat.popis}
-                  onChange={e => setInzerat(prev => ({ ...prev, popis: e.target.value }))}
-                />
+                <textarea style={{ marginBottom: '20px', height: '128px' }} id='popis' type='text' className="form-control" placeholder='Zde napiště svůj popis vozu, závady, co chcete přidat k vozu, výbavu atd.'
+                  onChange={e => setInzerat({ ...inzerat, popis: e.target.value })}></textarea>
               </div>
             </div>
             <div className='row' style={{ marginBottom: '50px' }}>
@@ -309,8 +256,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Audi'
-                  defaultValue={auto.znacka}
-                  onChange={e => setAuto(prev => ({ ...prev, znacka: e.target.value }))}
+                  value={capitalizeFirstLetter(auto.znacka)}
+                  onChange={e => setAuto({ ...auto, znacka: e.target.value })}
                 />
               </div>
               <div className='col-12 col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12'>
@@ -321,8 +268,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='RS3'
-                  defaultValue={auto.model}
-                  onChange={e => setAuto(prev => ({ ...prev, model: e.target.value }))}
+                  value={capitalizeFirstLetter(auto.model)}
+                  onChange={e => setAuto({ ...auto, model: e.target.value })}
                 />
               </div>
             </div>
@@ -336,33 +283,19 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Sportovní hatchback'
-                  defaultValue={auto.karoserie}
-                  onChange={e => setAuto(prev => ({ ...prev, karoserie: e.target.value }))}
+                  value={capitalizeFirstLetter(auto.karoserie)}
+                  onChange={e => setAuto({ ...auto, karoserie: e.target.value })}
                 />
               </div>
               <div className='col-12 col-xxl-4 col-xl-4 col-lg-4 col-md-12 col-sm-12'>
                 <label htmlFor='pocetDveri' className='form-label'>Počet Dveří</label>
-                <input 
-                  style={{ marginBottom: '20px' }} 
-                  id='pocetDveri' 
-                  type='text' 
-                  className='form-control' 
-                  placeholder='3'
-                  defaultValue={auto.pocetDveri}
-                  onChange={e => setAuto(prev => ({ ...prev, pocetDveri: e.target.value }))}
-                />
+                <input style={{ marginBottom: '20px' }} id='pocetDVeri' type='text' className='form-control' placeholder='3'
+                  onChange={e => setAuto({ ...auto, pocetDveri: e.target.value })}></input>
               </div>
               <div className='col-12 col-xxl-4 col-xl-4 col-lg-4 col-md-12 col-sm-12'>
                 <label htmlFor='pocetSedadel' className='form-label'>Počet Sedadel</label>
-                <input 
-                  style={{ marginBottom: '20px' }} 
-                  id='pocetSedadel' 
-                  type='text' 
-                  className='form-control' 
-                  placeholder='5'
-                  defaultValue={auto.pocetSedadel}
-                  onChange={e => setAuto(prev => ({ ...prev, pocetSedadel: e.target.value }))}
-                />
+                <input style={{ marginBottom: '20px' }} id='pocetSedadel' type='text' className='form-control' placeholder='5'
+                  onChange={e => setAuto({ ...auto, pocetSedadel: e.target.value })}></input>
               </div>
             </div>
             <div className='row' style={{ marginBottom: '50px' }}>
@@ -370,14 +303,8 @@ export default function Add() {
               <div className='col-12 col-xxl-3 col-xl-3 col-lg-3 col-md-12 col-sm-12'>
                 <label htmlFor='najeto' className='form-label'>Najeto</label>
                 <div className="input-group" style={{ marginBottom: '20px' }}>
-                  <input 
-                    id='najeto' 
-                    type='text' 
-                    className='form-control' 
-                    placeholder='125 000'
-                    defaultValue={specifikace.najeto}
-                    onChange={e => setSpecifikace(prev => ({ ...prev, najeto: e.target.value }))}
-                  />
+                  <input id='najeto' type='text' className='form-control' placeholder='125 000'
+                    onChange={e => setSpecifikace({ ...specifikace, najeto: e.target.value })}></input>
                   <span className="input-group-text" style={{ backgroundColor: 'white' }}>Km</span>
                 </div>
               </div>
@@ -389,8 +316,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Černá'
-                  defaultValue={specifikace.barva}
-                  onChange={e => setSpecifikace(prev => ({ ...prev, barva: e.target.value }))}
+                  value={capitalizeFirstLetter(specifikace.barva)}
+                  onChange={e => setSpecifikace({ ...specifikace, barva: e.target.value })}
                 />
               </div>
               <div className='col-12 col-xxl-3 col-xl-3 col-lg-3 col-md-12 col-sm-12'>
