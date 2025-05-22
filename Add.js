@@ -226,10 +226,10 @@ export default function Add() {
     }));
   };
 
-  // Helper function to capitalize first letter
-  const capitalizeFirstLetter = (string) => {
-    if (!string) return string;
-    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+  // Helper function to capitalize first letter only for display
+  const displayValue = (value) => {
+    if (!value) return '';
+    return value.charAt(0).toUpperCase() + value.slice(1);
   };
 
   return (
@@ -250,8 +250,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Audi RS3 MATRIX'
-                  value={inzerat.nazev}
-                  onChange={e => handleInzeratChange('nazev', e.target.value)}
+                  defaultValue={inzerat.nazev}
+                  onChange={e => setInzerat(prev => ({ ...prev, nazev: e.target.value }))}
                 />
                 <div className='row'>
                   <div className='col-12 col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-sm-6'>
@@ -262,8 +262,8 @@ export default function Add() {
                         type='text' 
                         className='form-control' 
                         placeholder='1 999 000'
-                        value={inzerat.cena}
-                        onChange={e => handleInzeratChange('cena', e.target.value)}
+                        defaultValue={inzerat.cena}
+                        onChange={e => setInzerat(prev => ({ ...prev, cena: e.target.value }))}
                       />
                       <span className="input-group-text" style={{ backgroundColor: 'white' }}>Kč</span>
                     </div>
@@ -290,8 +290,8 @@ export default function Add() {
                   type='text' 
                   className="form-control" 
                   placeholder='Zde napiště svůj popis vozu, závady, co chcete přidat k vozu, výbavu atd.'
-                  value={inzerat.popis}
-                  onChange={e => handleInzeratChange('popis', e.target.value)}
+                  defaultValue={inzerat.popis}
+                  onChange={e => setInzerat(prev => ({ ...prev, popis: e.target.value }))}
                 />
               </div>
             </div>
@@ -309,8 +309,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Audi'
-                  value={capitalizeFirstLetter(auto.znacka)}
-                  onChange={e => handleAutoChange('znacka', e.target.value)}
+                  defaultValue={auto.znacka}
+                  onChange={e => setAuto(prev => ({ ...prev, znacka: e.target.value }))}
                 />
               </div>
               <div className='col-12 col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12'>
@@ -321,8 +321,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='RS3'
-                  value={capitalizeFirstLetter(auto.model)}
-                  onChange={e => handleAutoChange('model', e.target.value)}
+                  defaultValue={auto.model}
+                  onChange={e => setAuto(prev => ({ ...prev, model: e.target.value }))}
                 />
               </div>
             </div>
@@ -336,8 +336,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Sportovní hatchback'
-                  value={capitalizeFirstLetter(auto.karoserie)}
-                  onChange={e => handleAutoChange('karoserie', e.target.value)}
+                  defaultValue={auto.karoserie}
+                  onChange={e => setAuto(prev => ({ ...prev, karoserie: e.target.value }))}
                 />
               </div>
               <div className='col-12 col-xxl-4 col-xl-4 col-lg-4 col-md-12 col-sm-12'>
@@ -348,8 +348,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='3'
-                  value={auto.pocetDveri}
-                  onChange={e => handleAutoChange('pocetDveri', e.target.value)}
+                  defaultValue={auto.pocetDveri}
+                  onChange={e => setAuto(prev => ({ ...prev, pocetDveri: e.target.value }))}
                 />
               </div>
               <div className='col-12 col-xxl-4 col-xl-4 col-lg-4 col-md-12 col-sm-12'>
@@ -360,8 +360,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='5'
-                  value={auto.pocetSedadel}
-                  onChange={e => handleAutoChange('pocetSedadel', e.target.value)}
+                  defaultValue={auto.pocetSedadel}
+                  onChange={e => setAuto(prev => ({ ...prev, pocetSedadel: e.target.value }))}
                 />
               </div>
             </div>
@@ -375,8 +375,8 @@ export default function Add() {
                     type='text' 
                     className='form-control' 
                     placeholder='125 000'
-                    value={specifikace.najeto}
-                    onChange={e => handleSpecifikaceChange('najeto', e.target.value)}
+                    defaultValue={specifikace.najeto}
+                    onChange={e => setSpecifikace(prev => ({ ...prev, najeto: e.target.value }))}
                   />
                   <span className="input-group-text" style={{ backgroundColor: 'white' }}>Km</span>
                 </div>
@@ -389,8 +389,8 @@ export default function Add() {
                   type='text' 
                   className='form-control' 
                   placeholder='Černá'
-                  value={capitalizeFirstLetter(specifikace.barva)}
-                  onChange={e => handleSpecifikaceChange('barva', e.target.value)}
+                  defaultValue={specifikace.barva}
+                  onChange={e => setSpecifikace(prev => ({ ...prev, barva: e.target.value }))}
                 />
               </div>
               <div className='col-12 col-xxl-3 col-xl-3 col-lg-3 col-md-12 col-sm-12'>
