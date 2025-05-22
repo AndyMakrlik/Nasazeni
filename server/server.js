@@ -730,7 +730,7 @@ apiRouter.post('/resetPassword', async (req, res) => {
             from: 'sportovniautainfo@gmail.com',
             to: req.body.email,
             subject: 'Resetování hesla',
-            text: `Odkaz je platný po dobu 10 minut: http://localhost:3000/restorePassword/${token}`
+            text: `Odkaz je platný po dobu 10 minut: ${process.env.CLIENT_URL}/restorePassword/${token}`
         };
 
         await transporter.sendMail(mailOptions);
