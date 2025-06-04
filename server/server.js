@@ -18,7 +18,6 @@ import { Readable } from 'stream';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Configure Cloudinary
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -26,9 +25,7 @@ cloudinary.config({
 });
 
 const app = express();
-const port = 3001;
 
-// Middleware setup
 app.use(express.json());
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -54,10 +51,8 @@ app.use((req, res, next) => {
 
 app.use(cookie());
 
-// Create an API router
 const apiRouter = express.Router();
 
-// Verify user middleware
 const verifyUser = (req, res, next) => {
     const user = req.session.user;
 
@@ -76,20 +71,15 @@ const verifyUser = (req, res, next) => {
     }
 }
 
-// Mount the API router under /api prefix
 app.use('/api', apiRouter);
 
-// Serve static files from the build directory
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Handle uploads directory for images
 app.use("/uploads", express.static(path.join(__dirname, 'uploads')));
 
-// Configure multer to use memory storage instead of disk storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Database connection
 const db = mysql2.createPool({
     host: process.env.MYSQL_ADDON_HOST,
     user: process.env.MYSQL_ADDON_USER,
@@ -101,7 +91,6 @@ const db = mysql2.createPool({
     queueLimit: 0
 });
 
-//Kontrola připojení k databázi
 db.query('SELECT 1')
   .then(() => console.log('✅ Připojeno k databázi'))
   .catch(err => console.error('❌ Chyba při připojení k databázi:', err));
@@ -329,19 +318,6 @@ apiRouter.delete('/user/:id', async (req, res) => {
 
                 await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
 
-                const images = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
-
-                // Získání a smazání obrázků
-                if (images.length > 0) {
-                    images[0].forEach(image => {
-                        const imagePath = path.join(__dirname, image.obrazek.replace('http://localhost:3001/', ''));
-                        if (imagePath) {
-                            fs.unlinkSync(imagePath)
-                        } else {
-                            console.log("Cesta k obrázku je undefined nebo prázdná");
-                        }
-                    });
-                }
                 await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
                 // Smazání inzerátu
@@ -452,7 +428,6 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         const auto = JSON.parse(req.body.auto);
         const specifikace = JSON.parse(req.body.specifikace);
 
-        // Handle database operations for znacka, model, and auto as before
         const [znacka] = await db.query('SELECT id FROM znacka WHERE nazev = ?', [auto.znacka]);
         let znackaId;
         if (znacka.length === 0) {
@@ -485,7 +460,6 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
         );
         const inzeratId = inzeratSQL.insertId;
 
-        // Upload images to Cloudinary
         if (req.files && req.files.length > 0) {
             const uploadPromises = req.files.map((file, index) => {
                 return new Promise((resolve, reject) => {
@@ -509,7 +483,6 @@ apiRouter.post('/add', verifyUser, upload.array('images'), async (req, res) => {
                         }
                     );
 
-                    // Create a readable stream from the buffer using the imported Readable
                     const bufferStream = new Readable();
                     bufferStream.push(file.buffer);
                     bufferStream.push(null);
@@ -1377,14 +1350,11 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
     const { adId, carId } = req.params;
 
     try {
-        // Get the model ID before deleting the car
         const [carInfo] = await db.query('SELECT fk_model FROM auto WHERE id = ?', [carId]);
         const modelId = carInfo[0]?.fk_model;
 
-        // Get the image URLs before deleting the records
         const [images] = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
-        // Delete from Cloudinary if images exist
         if (images && images.length > 0) {
             for (const image of images) {
                 const urlParts = image.obrazek.split('/');
@@ -1397,7 +1367,6 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
             }
         }
 
-        // Delete all related records in the correct order
         await db.query('DELETE FROM historie WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM notifikace WHERE fk_inzerat = ?', [adId]);
         await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
@@ -1406,23 +1375,18 @@ apiRouter.delete('/ad/:adId/:carId', async (req, res) => {
         await db.query('DELETE FROM auto WHERE id = ?', [carId]);
 
         if (modelId) {
-            // Check if this was the last car for this model
             const [remainingCars] = await db.query('SELECT COUNT(*) as count FROM auto WHERE fk_model = ?', [modelId]);
             
             if (remainingCars[0].count === 0) {
-                // Get brand ID before deleting the model
                 const [modelInfo] = await db.query('SELECT fk_znacka FROM model WHERE id = ?', [modelId]);
                 const brandId = modelInfo[0]?.fk_znacka;
-                
-                // Delete the model since it has no more cars
+
                 await db.query('DELETE FROM model WHERE id = ?', [modelId]);
 
                 if (brandId) {
-                    // Check if this was the last model for this brand
                     const [remainingModels] = await db.query('SELECT COUNT(*) as count FROM model WHERE fk_znacka = ?', [brandId]);
                     
                     if (remainingModels[0].count === 0) {
-                        // Delete the brand since it has no more models
                         await db.query('DELETE FROM znacka WHERE id = ?', [brandId]);
                     }
                 }
@@ -1664,7 +1628,6 @@ apiRouter.get('/history', verifyUser, async (req, res) => {
     }
 })
 
-//Odhlášení
 apiRouter.get('/odhlasit', (req, res) => {
     if (req.session) {
         req.session.destroy((err) => {
@@ -1676,12 +1639,10 @@ apiRouter.get('/odhlasit', (req, res) => {
     }
 });
 
-//Port
 app.listen(port, () => {
-    console.log(`Server běží na portu ${port}...`);
+    console.log(`Server běží...`);
 });
 
-// This should be the LAST route - after all other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
