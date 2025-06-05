@@ -807,7 +807,7 @@ apiRouter.get('/car/:id', async (req, res) => {
             uzivatel.mesto, 
             uzivatel.telefon, 
             uzivatel.email, 
-            GROUP_CONCAT(obrazky.obrazek SEPARATOR ',') AS obrazky
+            GROUP_CONCAT(obrazky.obrazek ORDER BY obrazky.hlavni DESC SEPARATOR ',') AS obrazky
         FROM 
             inzerat 
         JOIN 
