@@ -308,10 +308,8 @@ apiRouter.get('/check', verifyUser, (req, res) => {
 apiRouter.delete('/user/:id', async (req, res) => {
     const userId = req.params.id;
     try {
-        // Delete favorites
         await db.query('DELETE FROM oblibene WHERE fk_uzivatel = ?', [userId]);
 
-        // Get all ads for the user
         const [ads] = await db.query('SELECT id, fk_auto FROM inzerat WHERE fk_uzivatel = ?', [userId]);
 
         if (ads.length > 0) {
@@ -319,10 +317,8 @@ apiRouter.delete('/user/:id', async (req, res) => {
                 const adId = ad.id;
                 const carId = ad.fk_auto;
 
-                // Get images for the ad
                 const [images] = await db.query('SELECT obrazek FROM obrazky WHERE fk_inzerat = ?', [adId]);
 
-                // Delete images from Cloudinary
                 if (images && images.length > 0) {
                     for (const image of images) {
                         const urlParts = image.obrazek.split('/');
@@ -335,21 +331,17 @@ apiRouter.delete('/user/:id', async (req, res) => {
                     }
                 }
 
-                // Delete related records
                 await db.query('DELETE FROM historie WHERE fk_inzerat = ?', [adId]);
                 await db.query('DELETE FROM notifikace WHERE fk_inzerat = ?', [adId]);
                 await db.query('DELETE FROM oblibene WHERE fk_inzerat = ?', [adId]);
                 await db.query('DELETE FROM obrazky WHERE fk_inzerat = ?', [adId]);
                 await db.query('DELETE FROM inzerat WHERE id = ?', [adId]);
 
-                // Get car info for cleanup
                 const [carInfo] = await db.query('SELECT fk_model FROM auto WHERE id = ?', [carId]);
                 const modelId = carInfo[0]?.fk_model;
 
-                // Delete the car
                 await db.query('DELETE FROM auto WHERE id = ?', [carId]);
 
-                // Clean up model if no cars use it
                 if (modelId) {
                     const [remainingCars] = await db.query('SELECT COUNT(*) as count FROM auto WHERE fk_model = ?', [modelId]);
                     
@@ -359,7 +351,6 @@ apiRouter.delete('/user/:id', async (req, res) => {
 
                         await db.query('DELETE FROM model WHERE id = ?', [modelId]);
 
-                        // Clean up brand if no models use it
                         if (brandId) {
                             const [remainingModels] = await db.query('SELECT COUNT(*) as count FROM model WHERE fk_znacka = ?', [brandId]);
                             
@@ -372,7 +363,6 @@ apiRouter.delete('/user/:id', async (req, res) => {
             }
         }
 
-        // Finally delete the user
         await db.query('DELETE FROM uzivatel WHERE id = ?', [userId]);
 
         return res.json({ Status: 'Success' });
